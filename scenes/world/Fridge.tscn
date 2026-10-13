@@ -1,0 +1,56 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/storage_box.gd" id="1_box"]
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="2_item"]
+[ext_resource type="Resource" path="res://data/items/food_meat.tres" id="3_meat"]
+[ext_resource type="Resource" path="res://data/items/food_milk.tres" id="4_milk"]
+[ext_resource type="Resource" path="res://data/items/food_egg.tres" id="5_egg"]
+[ext_resource type="Resource" path="res://data/items/food_dumpling.tres" id="6_dumpling"]
+[ext_resource type="Resource" path="res://data/items/water_bottle.tres" id="7_water"]
+
+[sub_resource type="RectangleShape2D" id="FridgeInteract"]
+size = Vector2(110, 100)
+
+[sub_resource type="RectangleShape2D" id="FridgeBody"]
+size = Vector2(48, 48)
+
+[node name="Fridge" type="Area2D" groups=["containers"]]
+script = ExtResource("1_box")
+display_name = "冰箱"
+open_prompt = "打开冰箱"
+close_prompt = "关闭冰箱"
+capacity = 8
+starting_items = Array[ExtResource("2_item")]([ExtResource("3_meat"), ExtResource("4_milk"), ExtResource("5_egg"), ExtResource("6_dumpling"), ExtResource("7_water")])
+
+[node name="Shape" type="CollisionShape2D" parent="."]
+shape = SubResource("FridgeInteract")
+
+[node name="Body" type="StaticBody2D" parent="."]
+collision_layer = 3
+
+[node name="BodyShape" type="CollisionShape2D" parent="Body"]
+shape = SubResource("FridgeBody")
+
+[node name="Visual" type="Polygon2D" parent="."]
+color = Color(0.75, 0.78, 0.8, 1)
+polygon = PackedVector2Array(-24, -24, 24, -24, 24, 24, -24, 24)
+
+[node name="DoorSeam" type="Polygon2D" parent="."]
+color = Color(0.5, 0.53, 0.56, 1)
+polygon = PackedVector2Array(-24, -6, 24, -6, 24, -3, -24, -3)
+
+[node name="Handle" type="Polygon2D" parent="."]
+color = Color(0.4, 0.42, 0.45, 1)
+polygon = PackedVector2Array(18, 4, 22, 4, 22, 14, 18, 14)
+
+[node name="Label" type="Label" parent="."]
+offset_left = -30.0
+offset_top = -46.0
+offset_right = 30.0
+offset_bottom = -30.0
+text = "冰箱"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.85, 0.9, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.85)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 11

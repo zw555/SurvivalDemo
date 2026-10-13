@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ZombieVariant" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/zombie_variant.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+display_name = "强壮丧尸"
+color = Color(0.56, 0.26, 0.22, 1)
+max_health = 150
+damage = 15
+move_speed = 60.0
+detect_radius = 240.0

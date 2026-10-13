@@ -1,0 +1,945 @@
+extends SceneTree
+## 冒烟测试：headless 验证核心循环的关键行为。
+## 运行：Godot_console.exe --headless --path <项目> -s tools/smoke_test.gd
+
+var _failures := 0
+
+
+func _initialize() -> void:
+	_run.call_deferred()
+
+
+func _run() -> void:
+	await process_frame
+	await process_frame
+
+	_test_inventory()
+
+	var main: Node = (load("res://scenes/main/Main.tscn") as PackedScene).instantiate()
+	root.add_child(main)
+	await physics_frame
+	await physics_frame
+
+	var player: Player = main.get_node("Player")
+	var spawn: Marker2D = main.get_node("SpawnPoint")
+
+	_check(player.inventory.capacity == 8, "玩家初始背包 8 格")
+	_check(player.health == 100.0, "玩家初始血量 100")
+	_check(get_nodes_in_group("zombies").size() > 0, "生成系统刷出了僵尸")
+	_check(get_nodes_in_group("pickups").size() > 0, "生成系统刷出了散落物资")
+	_check(get_nodes_in_group("containers").size() > 0, "生成系统刷出了物资箱")
+
+	var loot_table: LootTable = load("res://data/loot/rich_table.tres")
+	var all_valid := true
+	for i in 50:
+		if loot_table.pick() == null:
+			all_valid = false
+	_check(all_valid, "掉落表 50 次抽取全部有效")
+
+	var zscene := load("res://scenes/enemies/Zombie.tscn") as PackedScene
+	var runner: Zombie = zscene.instantiate()
+	runner.variant = load("res://data/variants/runner.tres")
+	main.add_child(runner)
+	runner.global_position = Vector2(-600, -600)
+	_check(runner.health == 30 and runner.move_speed == 150.0, "迅捷丧尸变体参数正确应用")
+	runner.take_damage(30)
+	await physics_frame
+	_check(not is_instance_valid(runner), "迅捷丧尸 30 血一击即死")
+
+	var sp := SpawnPoint.new()
+	sp.variants = [null, load("res://data/variants/runner.tres")]
+	sp.variant_weights = [1.0, 0.0]
+	var all_normal := true
+	for i in 20:
+		if sp._pick_variant() != null:
+			all_normal = false
+	_check(all_normal, "变体权重为 0 时不会被抽中")
+	sp.free()
+
+	var variant_stats_ok := true
+	for node in get_nodes_in_group("zombies"):
+		var z := node as Zombie
+		if z.variant != null and z.health != z.variant.max_health:
+			variant_stats_ok = false
+	_check(variant_stats_ok, "场上变体僵尸的参数与配置一致")
+
+	var food_pickup := get_first_node_in_group("pickups") as Interactable
+	var inv_before_pickup := player.inventory.item_count()
+	player.global_position = food_pickup.global_position
+	for i in 8:
+		await physics_frame
+	_check(player.inventory.item_count() == inv_before_pickup, "物资不再自动拾取")
+	var near := player.nearest_interactable()
+	_check(near != null and near.is_in_group("pickups"), "靠近物资出现拾取交互")
+	near.interact(player)
+	_check(player.inventory.item_count() == inv_before_pickup + 1, "E 拾取物资进背包")
+	await physics_frame
+	_check(not is_instance_valid(near), "拾取后地上物资消失")
+
+	player.food = 0.0
+	var health_before := player.health
+	for i in 90:
+		await physics_frame
+	_check(player.health < health_before, "断粮后血量持续下降")
+
+	var zombie: Zombie = get_first_node_in_group("zombies")
+	health_before = player.health
+	player.global_position = zombie.global_position + Vector2(34, 0)
+	for i in 40:
+		await physics_frame
+	_check(player.health < health_before, "贴近僵尸会被攻击")
+
+	zombie.take_damage(50)
+	for i in 3:
+		await physics_frame
+	_check(not is_instance_valid(zombie), "僵尸血量归零后消失")
+
+	player.food = 100.0
+	player.water = 100.0
+	player.inventory.clear()
+	player.inventory.add_item(load("res://data/items/food_canned.tres") as ItemData)
+	var pickups_before_death := get_nodes_in_group("pickups").size()
+	player.take_damage(999)
+	await physics_frame
+	_check(not player.dead, "死亡后立即重生")
+	_check(player.global_position.distance_to(spawn.global_position) < 2.0, "重生位置在营地")
+	_check(player.health == 100.0, "重生后血量回满")
+	for i in 5:
+		await physics_frame
+	var no_zombie_in_camp := true
+	var camp_area: Area2D = main.get_node("CampArea")
+	for node in get_nodes_in_group("zombies"):
+		if camp_area.has_point((node as Node2D).global_position):
+			no_zombie_in_camp = false
+	_check(no_zombie_in_camp, "营地内没有僵尸停留（安全区）")
+	_check(get_nodes_in_group("pickups").size() == pickups_before_death + 1, "死亡掉落随身物品")
+	_check(player.inventory.item_count() == 0, "死亡后背包清空")
+
+	var camp: CampStorage = main.get_node("CampArea")
+	_check(camp.half_size == Vector2(350, 200), "安全区覆盖整个屋子（客厅/厨房/卧室/厕所）")
+	for i in 3:
+		await physics_frame
+	_check(player.nearest_interactable() == camp, "营地内探测到可交互的仓库")
+	camp.interact(player)
+	_check(camp.open, "E 交互打开仓库")
+	camp.interact(player)
+	_check(not camp.open, "再次交互关闭仓库")
+
+	player.food = 100.0
+	player.water = 100.0
+	player.health = 60.0
+	player.regen_interval = 0.5
+	for i in 60:
+		await physics_frame
+	_check(player.health > 60.0, "生命值随时间自然恢复")
+	player.regen_interval = 10.0
+
+	var bed: Interactable = main.get_node("Bed")
+	player.health = 50.0
+	player.global_position = bed.global_position
+	for i in 3:
+		await physics_frame
+	_check(player.nearest_interactable() == bed, "靠近床可探测到睡觉交互")
+	bed.interact(player)
+	_check(player.health == 70.0, "睡觉恢复 20% 生命值")
+	bed.interact(player)
+	_check(player.health == 70.0, "睡觉有冷却，不能连续回血")
+
+	# 昼夜循环与天数
+	var day_night: DayNight = main.get_node("DayNight")
+	_check(day_night.day_number == 1 and not day_night.is_night, "开局第 1 天白天")
+	var z2 := get_first_node_in_group("zombies") as Zombie
+	var detect_before := z2.detect_radius
+	day_night.force_night(true)
+	for i in 3:
+		await physics_frame
+	_check(day_night.is_night, "进入夜晚")
+	_check(z2.detect_radius > detect_before, "夜晚僵尸视野被强化")
+	day_night.skip_to_morning()
+	_check(day_night.day_number == 2 and not day_night.is_night, "迎来第 2 天清晨")
+	_check(z2.detect_radius == detect_before, "白天僵尸强化解除")
+
+	# 夜里睡觉 = 回血 + 直接跳到清晨
+	bed.cooldown_seconds = 0.0
+	bed._cooldown_left = 0.0  # 清掉之前睡觉留下的冷却计时
+	player.health = 50.0
+	day_night.force_night(true)
+	bed.interact(player)
+	_check(day_night.day_number == 3 and not day_night.is_night, "夜里睡觉直接跳到第二天清晨")
+	_check(player.health == 70.0, "夜里睡觉同样恢复 20% 生命值")
+
+	# 门：E 开关 + 门控安全区
+	var door: Door = main.get_node("Door")
+	_check(door.closed and door.get_prompt() == "开门", "门初始关闭，提示开门")
+	door.interact(player)
+	_check(not door.closed and door.get_prompt() == "关门", "E 打开门")
+	door.interact(player)
+	_check(door.closed and door.get_prompt() == "开门", "再次 E 关上门")
+	var door_watcher := get_first_node_in_group("zombies") as Zombie
+	player.global_position = spawn.global_position  # 屋内
+	door_watcher.global_position = door.global_position + Vector2(0, 100)  # 门外正对门洞，视野内
+	for i in 5:
+		await physics_frame
+	var dist_sheltered := door_watcher.global_position.distance_to(player.global_position)
+	for i in 40:
+		await physics_frame
+	_check(door_watcher.global_position.distance_to(player.global_position) >= dist_sheltered - 1.0,
+			"门关着时僵尸不会追进安全屋")
+	door.interact(player)  # 开门
+	for i in 40:
+		await physics_frame
+	_check(door_watcher.global_position.distance_to(player.global_position) < dist_sheltered - 10.0,
+			"门开后僵尸会追进屋")
+	door.interact(player)  # 关门恢复
+
+	# 家具容器与超市货架都挂在固定节点下；测试用的"物资箱"必须取生成点刷出的那只
+	var box: StorageBox = null
+	for node in get_nodes_in_group("containers"):
+		var candidate := node as StorageBox
+		if candidate != null and candidate.get_parent() is SpawnPoint:
+			box = candidate
+			break
+	_check(box.storage.item_count() > 0, "箱子按掉落表携带物资")
+	player.global_position = box.global_position + Vector2(30, 0)
+	for i in 3:
+		await physics_frame
+	_check(player.nearest_interactable() == box, "靠近箱子可探测到")
+	box.interact(player)
+	_check(box.open, "E 打开箱子")
+	var inv_count := player.inventory.item_count()
+	_check(box.withdraw(0, player.inventory) and player.inventory.item_count() == inv_count + 1,
+			"从箱子取出物资进背包")
+	box.interact(player)
+	_check(not box.open, "再次交互关闭箱子")
+
+	var pickups_before := get_nodes_in_group("pickups").size()
+	var inv_before := player.inventory.item_count()
+	player.drop_item(0)
+	for i in 3:
+		await physics_frame
+	_check(player.inventory.item_count() == inv_before - 1, "丢弃后背包减少且不会被自动捡回")
+	_check(get_nodes_in_group("pickups").size() == pickups_before + 1, "丢弃的物品出现在地上")
+
+	# 屋内家具：衣柜 / 冰箱 / 厨房柜子（容器）、洗手台（装水）、沙发（休息 / 翻找）
+	var wardrobe: ContainerBase = main.get_node("Wardrobe")
+	var fridge: ContainerBase = main.get_node("Fridge")
+	var cabinet: ContainerBase = main.get_node("KitchenCabinet")
+	_check(wardrobe.storage.item_count() == 4, "衣柜里放着四件衣物")
+	_check(fridge.storage.item_count() >= 4, "冰箱存有食物")
+	_check(cabinet.storage.item_count() >= 3, "厨房柜子有食材和塑料瓶")
+	player.global_position = wardrobe.global_position + Vector2(0, 50)
+	for i in 3:
+		await physics_frame
+	_check(player.nearest_interactable() == wardrobe, "靠近衣柜可交互")
+	var tshirt := load("res://data/items/cloth_tshirt.tres") as ItemData
+	_check(tshirt.kind == ItemData.KIND_CLOTHING and tshirt.equip_slot == ItemData.SLOT_CHEST,
+			"T恤是衣服部位的装备")
+
+	var sink: Sink = main.get_node("Sink")
+	var plastic := load("res://data/items/bottle_plastic.tres") as ItemData
+	var bottled := load("res://data/items/water_bottle.tres") as ItemData
+	player.inventory.clear()
+	player.inventory.add_item(plastic)
+	sink.interact(player)
+	_check(player.inventory.slots.has(bottled) and not player.inventory.slots.has(plastic),
+			"塑料瓶在洗手台装成瓶装水")
+	sink.interact(player)
+	_check(player.inventory.item_count() == 1, "没有塑料瓶时装不了水")
+	player.inventory.clear()
+
+	var sofa: Sofa = main.get_node("Sofa")
+	player.global_position = sofa.global_position + Vector2(45, 0)
+	for i in 3:
+		await physics_frame
+	_check(player.nearest_interactable() == sofa, "靠近沙发可交互")
+	sofa.interact(player)
+	_check(main.get_node("HUD/Root/SofaPanel").visible, "按 E 弹出沙发选项面板")
+	player.health = 50.0
+	sofa.do_rest()
+	_check(player.health == 55.0, "沙发休息恢复 5 点生命")
+	sofa.do_search()
+	_check(not sofa.can_search(), "沙发每天只能翻找一次")
+	var hud_node: Hud = main.get_node("HUD")
+	hud_node._on_sofa_menu_closed()
+	_check(not main.get_node("HUD/Root/SofaPanel").visible, "离开沙发后选项面板自动关闭")
+
+	# 超市：货架容器、守卫僵尸、南墙入口可通行
+	var market: Node2D = main.get_node("Market")
+	_check(market != null, "惠民超市存在于地图上")
+	var shelf_count := 0
+	var shelf_items := 0
+	var some_shelf: StorageBox = null
+	for node in get_nodes_in_group("containers"):
+		var shelf := node as StorageBox
+		if shelf != null and shelf.display_name == "货架" and shelf.get_parent() == market:
+			shelf_count += 1
+			shelf_items += shelf.storage.item_count()
+			if some_shelf == null:
+				some_shelf = shelf
+	_check(shelf_count == 6 and shelf_items >= 18, "超市 6 排货架且初始铺满货")
+	var market_guards := 0
+	for node in get_nodes_in_group("zombies"):
+		var guard := node as Zombie
+		if guard.global_position.x > 1660.0 and guard.global_position.x < 2140.0 \
+				and guard.global_position.y > 820.0 and guard.global_position.y < 1180.0:
+			market_guards += 1
+	_check(market_guards >= 2, "超市内有守卫僵尸")
+	var space: PhysicsDirectSpaceState2D = main.get_world_2d().direct_space_state
+	var point_params := PhysicsPointQueryParameters2D.new()
+	point_params.position = Vector2(1900, 1172)  # 南墙入口门洞中心
+	var entrance_clear := true
+	for hit in space.intersect_point(point_params):
+		if hit.collider is StaticBody2D:
+			entrance_clear = false
+	_check(entrance_clear, "超市南墙入口可以通行")
+	player.inventory.clear()
+	player.global_position = some_shelf.global_position + Vector2(0, 30)
+	for i in 3:
+		await physics_frame
+	_check(player.nearest_interactable() == some_shelf, "靠近货架可搜刮")
+	some_shelf.interact(player)
+	_check(some_shelf.open, "E 打开货架")
+	some_shelf.interact(player)
+	_check(not some_shelf.open, "再次交互关闭货架")
+
+	# 医院：药品回血、药房库存、守卫僵尸（含 1 只强壮）、入口通行
+	var hospital: Node2D = main.get_node("Hospital")
+	_check(hospital != null, "仁爱医院存在于地图上")
+	var med_containers := 0
+	var med_stock := 0
+	for node in get_nodes_in_group("containers"):
+		var med_box := node as StorageBox
+		if med_box != null and (med_box.display_name == "药房货架"
+				or med_box.display_name == "急救柜" or med_box.display_name == "床头柜"):
+			med_containers += 1
+			med_stock += med_box.storage.item_count()
+	_check(med_containers == 4 and med_stock >= 8, "医院药房货架/急救柜/床头柜备有药品")
+	var hosp_guards := 0
+	for node in get_nodes_in_group("zombies"):
+		var guard := node as Zombie
+		if guard.global_position.x > 1560.0 and guard.global_position.x < 2000.0 \
+				and guard.global_position.y > 140.0 and guard.global_position.y < 460.0:
+			hosp_guards += 1
+	_check(hosp_guards == 3, "医院内有 3 只守卫僵尸")
+	var tank_in_pharmacy := false
+	for node in get_nodes_in_group("zombies"):
+		var tank := node as Zombie
+		if tank.variant != null and tank.global_position.x > 1560.0 \
+				and tank.global_position.x < 1780.0 and tank.global_position.y > 140.0 \
+				and tank.global_position.y < 340.0:
+			tank_in_pharmacy = true
+	_check(tank_in_pharmacy, "药房由强壮丧尸看守")
+	var hosp_params := PhysicsPointQueryParameters2D.new()
+	hosp_params.position = Vector2(1780, 452)  # 南墙入口门洞中心
+	var hosp_clear := true
+	for hit in space.intersect_point(hosp_params):
+		if hit.collider is StaticBody2D:
+			hosp_clear = false
+	_check(hosp_clear, "医院南墙入口可以通行")
+
+	# 药品机制：直接回血、不超上限、满血不消耗
+	var bandage := load("res://data/items/med_bandage.tres") as ItemData
+	_check(bandage.kind == ItemData.KIND_MEDICINE and bandage.heal_amount == 15.0,
+			"绷带是回复 15 点的药品")
+	player.inventory.clear()
+	player.inventory.add_item(bandage)
+	player.health = 50.0
+	player.use_item(player.inventory.slots.find(bandage))
+	_check(player.health == 65.0, "绷带使用后恢复 15 点生命")
+	_check(not player.inventory.slots.has(bandage), "用药后药品被消耗")
+	player.inventory.add_item(bandage)
+	player.health = 95.0
+	player.use_item(player.inventory.slots.find(bandage))
+	_check(player.health == 100.0, "生命接近满值时药品不会过量回复")
+	player.inventory.add_item(bandage)
+	player.health = 100.0
+	player.use_item(player.inventory.slots.find(bandage))
+	_check(player.inventory.slots.has(bandage), "满血时使用药品不消耗")
+	player.inventory.clear()
+
+	# 警察局：守卫、入口、枪柜物资
+	var police: Node2D = main.get_node("PoliceStation")
+	_check(police != null, "警察局存在于地图上")
+	var police_guards := 0
+	for node in get_nodes_in_group("zombies"):
+		var pg := node as Zombie
+		if pg.global_position.x > 1180.0 and pg.global_position.x < 1620.0 \
+				and pg.global_position.y > 760.0 and pg.global_position.y < 1040.0:
+			police_guards += 1
+	_check(police_guards == 3, "警察局内有 3 只守卫僵尸")
+	var police_params := PhysicsPointQueryParameters2D.new()
+	police_params.position = Vector2(1400, 1040)  # 南墙入口门洞中心
+	var police_clear := true
+	for hit in space.intersect_point(police_params):
+		if hit.collider is StaticBody2D:
+			police_clear = false
+	_check(police_clear, "警察局南墙入口可以通行")
+	var gunlocker_stock := 0
+	for node in get_nodes_in_group("containers"):
+		if node.display_name == "枪柜":
+			gunlocker_stock = node.storage.item_count()
+	_check(gunlocker_stock == 5, "枪柜存有枪械、弹药与手雷")
+
+	# 五金店：材料货架、守卫僵尸、入口、工具柜台与掉落表
+	var hardware: Node2D = main.get_node("HardwareStore")
+	_check(hardware != null, "五金店存在于地图上")
+	var hw_shelves := 0
+	var hw_stock := 0
+	var hw_material_kinds := {}
+	for node in get_nodes_in_group("containers"):
+		var hw_shelf := node as StorageBox
+		if hw_shelf != null and hw_shelf.get_parent() == hardware:
+			hw_shelves += 1
+			hw_stock += hw_shelf.storage.item_count()
+			for item in hw_shelf.storage.slots:
+				if item != null and item.kind == ItemData.KIND_MATERIAL:
+					hw_material_kinds[item.id] = true
+	_check(hw_shelves == 7, "五金店有 6 排货架 + 1 个工具柜台")
+	_check(hw_stock >= 14, "五金店货架上备有物资")
+	_check(hw_material_kinds.size() >= 6, "货架上有至少 6 种制作材料")
+	var hw_guards := 0
+	for node in get_nodes_in_group("zombies"):
+		var hw_guard := node as Zombie
+		if hw_guard.global_position.x > 1940.0 and hw_guard.global_position.x < 2380.0 \
+				and hw_guard.global_position.y > 1200.0 and hw_guard.global_position.y < 1480.0:
+			hw_guards += 1
+	_check(hw_guards >= 2, "五金店内有守卫僵尸")
+	var hw_params := PhysicsPointQueryParameters2D.new()
+	hw_params.position = Vector2(2160, 1472)  # 南墙入口门洞中心
+	var hw_clear := true
+	for hit in space.intersect_point(hw_params):
+		if hit.collider is StaticBody2D:
+			hw_clear = false
+	_check(hw_clear, "五金店南墙入口可以通行")
+	var hw_table: LootTable = load("res://data/loot/hardware_table.tres")
+	var hw_table_ok := true
+	for i in 50:
+		var rolled := hw_table.pick()
+		if rolled == null:
+			hw_table_ok = false
+	_check(hw_table_ok, "五金掉落表 50 次抽取全部有效")
+
+	# 枪械：装填、射击消耗弹药、直线命中、没弹药打不响
+	var pistol := load("res://data/items/weapon_pistol.tres") as ItemData
+	var ammo9 := load("res://data/items/ammo_pistol_box.tres") as ItemData
+	var baton := load("res://data/items/weapon_baton.tres") as ItemData
+	var fire_axe := load("res://data/items/weapon_fire_axe.tres") as ItemData
+	_check(pistol.kind == ItemData.KIND_GUN and pistol.damage == 16
+			and pistol.range_in_tiles() == 5 and pistol.two_handed,
+			"手枪 16 伤害、5 格射程、双手")
+	_check(baton.damage == 10 and baton.attack_cooldown == 0.3 and not baton.two_handed,
+			"警棍 10 伤害、攻速 0.3、单手")
+	_check(fire_axe.damage == 26 and fire_axe.two_handed
+			and fire_axe.attack_cooldown == 0.7, "消防斧 26 伤害、双手、攻速 0.7")
+	player.inventory.clear()
+	player.inventory.add_item(pistol)
+	player.use_item(player.inventory.slots.find(pistol))
+	_check(player.current_weapon() == pistol, "手枪装备到手上")
+	player.inventory.add_item(ammo9)
+	player.use_item(player.inventory.slots.find(ammo9))
+	_check(player.ammo_pistol == 15, "9mm 弹盒装填 15 发")
+	# 挪到地图外空地，避免场上游荡僵尸干扰弹道
+	player.global_position = Vector2(-800, -600)
+	var gun_target: Zombie = zscene.instantiate()
+	main.add_child(gun_target)
+	gun_target.global_position = Vector2(-680, -600)
+	await physics_frame
+	var ammo_before := player.ammo_pistol
+	player._attack_toward(Vector2.RIGHT)
+	_check(player.ammo_pistol == ammo_before - 1, "射击消耗 1 发 9mm")
+	_check(gun_target.health == 29, "手枪命中直线上的僵尸（45 → 29）")
+	gun_target.queue_free()
+	await physics_frame
+	player.ammo_pistol = 0
+	var dry: Zombie = zscene.instantiate()
+	main.add_child(dry)
+	dry.global_position = Vector2(-700, -600)
+	await physics_frame
+	player._attack_toward(Vector2.RIGHT)
+	_check(dry.health == 45, "没有弹药时手枪无法射击")
+	dry.queue_free()
+	await physics_frame
+
+	# 手雷：朝指定方向投掷，爆炸范围杀伤
+	var grenade := load("res://data/items/weapon_grenade.tres") as ItemData
+	player.inventory.add_item(grenade)
+	var boom1: Zombie = zscene.instantiate()
+	var boom2: Zombie = zscene.instantiate()
+	main.add_child(boom1)
+	main.add_child(boom2)
+	boom1.global_position = Vector2(-600, -600)
+	boom2.global_position = Vector2(-560, -600)
+	boom1.detect_radius = 0  # 测试丧尸失明定身，排除感知/寻路对爆炸测试的干扰
+	boom2.detect_radius = 0
+	player.global_position = Vector2(-800, -600)
+	for i in 3:
+		await physics_frame
+	player.use_item(player.inventory.slots.find(grenade), Vector2(210, 0))
+	_check(not player.inventory.slots.has(grenade), "手雷投出后消耗")
+	for i in 90:
+		await physics_frame
+	_check(not is_instance_valid(boom1) and not is_instance_valid(boom2),
+			"手雷爆炸炸死范围内的僵尸")
+
+	# 装备系统：双手武器占两手、匕首单手可双持、矛单体、护甲减伤、背包扩容、鞋子加速
+	var machete := load("res://data/items/weapon_machete.tres") as ItemData
+	var wood_spear := load("res://data/items/weapon_wood_spear.tres") as ItemData
+	var saber := load("res://data/items/weapon_army_saber.tres") as ItemData
+	var kitchen := load("res://data/items/weapon_kitchen_knife.tres") as ItemData
+	var fruit := load("res://data/items/weapon_fruit_knife.tres") as ItemData
+	_check(machete.damage == 17 and machete.two_handed, "砍刀 17 伤害、双手武器")
+	_check(saber.damage == 25 and saber.two_handed, "军刀 25 伤害、双手武器")
+	_check(wood_spear.damage == 5 and wood_spear.range_in_tiles() == 2 and wood_spear.single_target,
+			"木矛 5 伤害、两格距离、只命中最近目标")
+	_check(kitchen.damage == 5 and kitchen.attack_cooldown == 0.35 and not kitchen.two_handed,
+			"菜刀 5 伤害、攻速 0.35 秒、单手")
+	_check(fruit.damage == 8 and fruit.attack_cooldown == 0.35, "水果刀 8 伤害、攻速 0.35 秒")
+
+	player.inventory.add_item(machete)
+	player.use_item(player.inventory.slots.find(machete))
+	_check(player.equipped.get(ItemData.SLOT_HAND_R) == machete
+			and player.equipped.get(ItemData.SLOT_HAND_L) == machete, "双手武器占用左右手")
+	_check(not player.inventory.slots.has(machete), "装备后武器离开背包")
+	_check(player.current_damage() == 17 and player.current_attack_range() == 48.0,
+			"砍刀攻击力 17、距离一格")
+
+	player.inventory.add_item(wood_spear)
+	player.use_item(player.inventory.slots.find(wood_spear))
+	_check(player.equipped.get(ItemData.SLOT_HAND_R) == wood_spear
+			and player.equipped.get(ItemData.SLOT_HAND_L) == wood_spear, "新双手武器替换旧武器")
+	_check(player.inventory.slots.has(machete), "替换下的砍刀回到背包")
+	_check(player.current_damage() == 5 and player.current_attack_range() == 96.0,
+			"木矛攻击力 5、距离两格")
+
+	player.inventory.add_item(saber)
+	player.use_item(player.inventory.slots.find(saber))
+	_check(player.current_damage() == 25 and player.current_attack_range() == 48.0,
+			"军刀攻击力 25、距离一格")
+	_check(player.current_attack_cooldown() == 0.45, "双手武器使用默认攻击冷却")
+
+	player.inventory.add_item(kitchen)
+	player.use_item(player.inventory.slots.find(kitchen))
+	_check(player.equipped.get(ItemData.SLOT_HAND_R) == kitchen
+			and player.equipped.get(ItemData.SLOT_HAND_L) == null, "匕首只占用一只手")
+	_check(player.current_damage() == 5 and player.current_attack_cooldown() == 0.35,
+			"菜刀攻击力 5、攻击冷却 0.35 秒")
+
+	player.inventory.add_item(fruit)
+	player.use_item(player.inventory.slots.find(fruit))
+	_check(player.equipped.get(ItemData.SLOT_HAND_R) == fruit
+			and player.equipped.get(ItemData.SLOT_HAND_L) == null, "新武器替换旧武器、不可双持")
+	_check(player.inventory.slots.has(kitchen), "替换下的菜刀回到背包")
+	_check(player.current_damage() == 8 and player.current_attack_cooldown() == 0.35,
+			"水果刀攻击力 8、攻击冷却 0.35 秒")
+	_check(player.unequip_slot(ItemData.SLOT_HAND_R), "可脱下单手武器")
+	_check(player.equipped.get(ItemData.SLOT_HAND_R) == null, "脱下后右手为空")
+
+	var jacket := load("res://data/items/cloth_jacket.tres") as ItemData
+	player.inventory.add_item(jacket)
+	player.use_item(player.inventory.slots.find(jacket))
+	_check(player.equipped.get(ItemData.SLOT_CHEST) == jacket, "夹克装备到衣服部位")
+	var hp_before := player.health
+	player.take_damage(10)
+	_check(player.health == hp_before - 9.0, "护甲 2 点按 10% 减伤（10 → 9）")
+
+	var bp := load("res://data/items/backpack_small.tres") as ItemData
+	player.inventory.add_item(bp)
+	player.use_item(player.inventory.slots.find(bp))
+	_check(player.inventory.capacity == player.base_slot_count + 4, "装备背包扩容 +4")
+
+	var shoes := load("res://data/items/sport_shoes.tres") as ItemData
+	player.inventory.add_item(shoes)
+	player.use_item(player.inventory.slots.find(shoes))
+	_check(player.equipped.get(ItemData.SLOT_FEET) == shoes, "鞋子装备到脚部")
+	_check(player.current_move_speed() > player.move_speed, "鞋子提升移速")
+
+	var filler := load("res://data/items/food_canned.tres") as ItemData
+	while player.inventory.add_item(filler):
+		pass
+	_check(not player.unequip_slot(ItemData.SLOT_BACKPACK), "物品装满时无法脱下背包")
+	_check(player.equipped.get(ItemData.SLOT_BACKPACK) == bp, "背包仍在装备栏")
+	_check(not player.unequip_slot(ItemData.SLOT_FEET), "背包满时无法脱下其他装备")
+	player.inventory.remove_item(0)
+	_check(player.unequip_slot(ItemData.SLOT_FEET), "腾出空位后可脱下鞋子放回背包")
+
+	# 材料与叠放
+	var nails := load("res://data/items/mat_nails.tres") as ItemData
+	var board := load("res://data/items/mat_wood_board.tres") as ItemData
+	_check(nails.kind == ItemData.KIND_MATERIAL and nails.stack_size == 10,
+			"钉子是可叠放 10 个的材料")
+	player.inventory.clear()
+	player.inventory.add_item(nails)
+	player.inventory.add_item(nails)
+	player.inventory.add_item(nails)
+	_check(player.inventory.item_count() == 1 and player.inventory.count_at(0) == 3,
+			"同 id 材料叠进同一格并计数")
+	camp.storage.clear()
+	camp.storage.add_item(nails)
+	camp.storage.add_item(nails)
+	_check(camp.storage.item_count() == 1 and camp.storage.count_at(0) == 2, "材料存入营地仓库同样叠放")
+	var stack_snapshot := camp.storage.to_save_list()
+	var stack_restored := Inventory.new(4)
+	stack_restored.load_save_list(stack_snapshot)
+	_check(stack_restored.item_count() == 1 and stack_restored.count_at(0) == 2, "叠放数量随存档保留")
+	camp.storage.clear()
+
+	# 制作系统：配方加载、材料检查、制作消耗与产物
+	var recipes := Crafting.load_recipes()
+	_check(recipes.size() == 6, "加载全部 6 条制作配方")
+	player.inventory.clear()
+	var club_recipe: RecipeData = null
+	var armor_recipe: RecipeData = null
+	for r in recipes:
+		if r.id == "recipe_wood_club":
+			club_recipe = r
+		if r.id == "recipe_scrap_armor":
+			armor_recipe = r
+	_check(club_recipe != null and club_recipe.product != null
+			and club_recipe.product.display_name == "木棒", "木棒配方存在")
+	if club_recipe == null or club_recipe.product == null:
+		print("SMOKE TEST: 配方加载失败，中止制作测试")
+		quit(1)
+		return
+	_check(not Crafting.can_craft(player.inventory, club_recipe), "材料不足时不能制作")
+	_check(not Crafting.craft(player.inventory, club_recipe), "材料不足时制作被拒绝")
+	_check(Crafting.missing_text(player.inventory, club_recipe) != "", "缺料时给出缺料摘要")
+	player.inventory.add_item(board)
+	_check(not Crafting.can_craft(player.inventory, club_recipe), "只有木板时还不能制作")
+	player.inventory.add_item(nails)
+	_check(not Crafting.can_craft(player.inventory, club_recipe), "钉子只有 1 根（需 2 根）时不能制作")
+	player.inventory.add_item(nails)
+	_check(Crafting.can_craft(player.inventory, club_recipe), "补齐木板与钉子后可以制作")
+	_check(Crafting.craft(player.inventory, club_recipe), "制作成功")
+	_check(player.inventory.slots.has(club_recipe.product), "产物木棒进入背包")
+	_check(player.inventory.count_of(nails) == 0 and player.inventory.count_of(board) == 0,
+			"制作消耗了木板与钉子")
+
+	# 自制护甲：制作产物可装备并计入护甲值
+	player.inventory.clear()
+	var scrap := load("res://data/items/mat_scrap_metal.tres") as ItemData
+	var cloth := load("res://data/items/mat_cloth.tres") as ItemData
+	var tape := load("res://data/items/mat_duct_tape.tres") as ItemData
+	player.inventory.add_item(scrap)
+	player.inventory.add_item(scrap)
+	player.inventory.add_item(cloth)
+	player.inventory.add_item(cloth)
+	player.inventory.add_item(tape)
+	_check(Crafting.craft(player.inventory, armor_recipe), "废金属+布料+胶带做出自制护甲")
+	var scrap_armor := load("res://data/items/armor_scrap.tres") as ItemData
+	_check(player.inventory.slots.has(scrap_armor), "自制护甲进入背包")
+	player.use_item(player.inventory.slots.find(scrap_armor))
+	_check(player.equipped.get(ItemData.SLOT_CHEST) == scrap_armor, "自制护甲装备到衣服部位")
+	var hp_before_armor := player.health
+	player.take_damage(10)
+	_check(player.health == hp_before_armor - 9.0, "护甲 3 点按 15% 减伤（10 → 9）")
+	player.inventory.clear()
+
+	# 工作台：交互弹出制作面板
+	var workbench: Interactable = main.get_node("Workbench")
+	_check(workbench != null, "安全屋里放着工作台")
+	player.global_position = workbench.global_position + Vector2(0, -50)
+	for i in 3:
+		await physics_frame
+	_check(player.nearest_interactable() == workbench, "靠近工作台可交互")
+	workbench.interact(player)
+	_check(main.get_node("HUD/Root/CraftPanel").visible, "按 E 弹出制作面板")
+	hud_node._on_craft_menu_closed()
+	_check(not main.get_node("HUD/Root/CraftPanel").visible, "离开工作台后面板关闭")
+
+	# 引导系统：状态触发、一次性、冷却与发现建筑
+	var thoughts: ThoughtSystem = main.get_node("ThoughtSystem")
+	_check(thoughts != null and thoughts.definition_count() == 14, "ThoughtSystem 挂载且 14 条想法齐全")
+	thoughts.start_delay = 0.0
+	main.get_node("DayNight").day_number = 1  # 开场独白只在第 1 天（床铺测试已推进天数）
+	thoughts.skip_display_wait()
+	thoughts.evaluate()
+	_check(thoughts.trigger_count("wake") == 1, "开局独白「肚子饿了」触发")
+	thoughts.skip_display_wait()
+	thoughts.evaluate()
+	_check(thoughts.trigger_count("wake") == 1, "一次性想法不会重复触发")
+	player.food = 20.0
+	thoughts.skip_display_wait()
+	thoughts.evaluate()
+	_check(thoughts.trigger_count("hunger") == 1, "饥饿阈值触发「找吃的」")
+	player.food = 100.0
+	thoughts.skip_display_wait()
+	thoughts.evaluate()
+	_check(thoughts.trigger_count("hunger") == 1, "饥饿想法受冷却保护不立即重复")
+	var thought_pos := player.global_position
+	player.global_position = Vector2(1900, 1172)
+	thoughts.skip_display_wait()
+	thoughts.evaluate()
+	_check(thoughts.trigger_count("discover_market") == 1, "首次靠近超市触发「发现建筑」")
+	player.global_position = Vector2(1400, 700)
+	thoughts.skip_display_wait()
+	thoughts.evaluate()
+	_check(thoughts.trigger_count("discover_police") == 1, "首次靠近警局触发「发现建筑」")
+	_check(thoughts.trigger_count("discover_hospital") == 0, "没靠近医院就不触发对应想法")
+	player.global_position = thought_pos
+	thoughts.skip_display_wait()
+	thoughts.evaluate()
+	_check(thoughts.trigger_count("discover_market") == 1 \
+			and thoughts.trigger_count("discover_police") == 1, "同一栋建筑的发现想法只触发一次")
+	var health_backup := player.health
+	player.health = 30.0
+	thoughts.skip_display_wait()
+	thoughts.evaluate()
+	_check(thoughts.trigger_count("hp_low") == 1, "生命值低触发「得找药」")
+	player.health = health_backup
+
+	# 军事基地与撤离任务：汽油、建筑物资、守卫、任务链四阶段与结局
+	var military: Node2D = main.get_node("MilitaryBase")
+	_check(military != null, "军事基地存在于地图上")
+	var mil_stock := 0
+	var mil_fuel := 0
+	for node in get_nodes_in_group("containers"):
+		var mil_box := node as StorageBox
+		if mil_box != null and mil_box.get_parent() == military:
+			mil_stock += mil_box.storage.item_count()
+			for item in mil_box.storage.slots:
+				if item != null and item.kind == ItemData.KIND_FUEL:
+					mil_fuel += 1
+	_check(mil_stock >= 6, "军需柜与油桶备有物资")
+	_check(mil_fuel >= 2, "油桶里有汽油")
+	var fuel := load("res://data/items/fuel.tres") as ItemData
+	_check(fuel.kind == ItemData.KIND_FUEL and fuel.stack_size == 2, "汽油是可叠 2 个的燃料")
+	var mil_guards := 0
+	for node in get_nodes_in_group("zombies"):
+		var mg := node as Zombie
+		if mg.global_position.x > 1040.0 and mg.global_position.x < 1520.0 \
+				and mg.global_position.y > 150.0 and mg.global_position.y < 510.0:
+			mil_guards += 1
+	_check(mil_guards >= 4, "军事基地内有守卫僵尸")
+	var radio: Interactable = main.get_node("Radio")
+	var pilot: SurvivorNpc = main.get_node("Pilot")
+	_check(radio != null and pilot != null, "收音机与飞行员 NPC 都在场景里")
+	_check(main.quest_stage == "none", "撤离任务初始未开始")
+	radio.interact(player)
+	_check(main.quest_stage == "radio_heard", "收听广播后撤离任务开启")
+	pilot.interact(player)
+	_check(main.quest_stage == "pilot_met", "与飞行员交谈接到物资清单")
+	pilot.interact(player)
+	_check(main.quest_stage == "pilot_met", "没备齐物资时交谈不会推进任务")
+	player.inventory.clear()
+	player.inventory.add_item(load("res://data/items/food_canned.tres") as ItemData)
+	player.inventory.add_item(load("res://data/items/food_canned.tres") as ItemData)
+	player.inventory.add_item(load("res://data/items/water_bottle.tres") as ItemData)
+	player.inventory.add_item(load("res://data/items/water_bottle.tres") as ItemData)
+	player.inventory.add_item(fuel)
+	player.inventory.add_item(load("res://data/items/med_bandage.tres") as ItemData)
+	_check(main._has_all_supplies(), "物资清单备齐（食物水汽油药品）")
+	main._on_deliver_pressed()
+	_check(main.quest_stage == "supplied", "交付物资后任务进入汇合阶段")
+	_check(pilot.global_position.distance_to(main.PILOT_PAD_POSITION) < 2.0,
+			"交付后飞行员瞬移到停机坪等候")
+	# 重型 Boss：交付物资后刷出；数值、蓄力重击节奏与狂暴
+	var boss: Brute = null
+	for node in get_nodes_in_group("zombies"):
+		if node is Brute:
+			boss = node
+	_check(boss != null, "交付物资后停机坪刷出重型变异体")
+	var brute_variant: ZombieVariant = load("res://data/variants/brute.tres")
+	_check(brute_variant.max_health == 450 and brute_variant.damage == 20
+			and brute_variant.move_speed == 55.0, "重型变异体数值 450 HP / 20 伤 / 移速 55")
+	_check(boss.health == 450 and boss.attack_cooldown > 1.0,
+			"Boss 初始 450 血、普攻间隔 1.2 秒")
+	await physics_frame
+	await physics_frame  # 让 Boss 的 _target 在物理帧里完成初始化
+	boss._perform_attack()
+	boss._perform_attack()
+	_check(boss._state == Brute.State.NORMAL, "前两次普攻为普通攻击")
+	boss._perform_attack()
+	_check(boss._state == Brute.State.SLAM_WINDUP, "第三次普攻进入蓄力重击前摇")
+	var brute_hp_before := boss.health
+	boss.take_damage(300)
+	_check(brute_hp_before - boss.health == 300, "Boss 受击正常扣血（复用受击系统）")
+	_check(boss._enraged and boss.move_speed > brute_variant.move_speed,
+			"血量低于 45% 进入狂暴（移速提升）")
+	_check(player.inventory.count_of(fuel) == 0, "交付扣除了汽油")
+	pilot.interact(player)
+	_check(main.quest_stage == "escaped", "停机坪与飞行员汇合触发结局")
+	_check(main.get_node("HUD/Root/EndingPanel").visible, "结局面板弹出")
+	hud_node._on_ending_continue()
+	_check(not main.get_node("HUD/Root/EndingPanel").visible, "选择继续生存后世界恢复运行")
+
+	# 地图迷雾与标记：揭开、保留、三态地点与情报解锁
+	var fog: FogOfWar = main.get_node("FogOfWar")
+	_check(fog != null and fog.col_count() > 0, "迷雾系统挂载且网格已生成")
+	_check(fog.is_explored(player.global_position), "玩家所在区域已被揭开")
+	_check(not fog.is_explored(Vector2(2300, 200)), "地图东北角仍是未知区域")
+	fog.reveal_area(Vector2(2300, 200), 220.0)
+	_check(fog.is_explored(Vector2(2300, 200)), "情报照亮能揭开远处区域")
+	_check(int(main.map_markers["military"]) >= 1, "收音机广播解锁军营地图标记")
+	_check(int(main.map_markers["camp"]) == 2, "安全屋开局即为已探索")
+	main.map_markers["police"] = 0
+	player.global_position = Vector2(1400, 700)
+	main._update_map_markers()
+	_check(int(main.map_markers["police"]) == 1, "路过警局被自动发现")
+	main.map_markers["market"] = 0
+	main.map_markers["hospital"] = 0
+	player.global_position = Vector2(1900, 1172)
+	main._update_map_markers()
+	_check(int(main.map_markers["market"]) == 1, "靠近后超市标记为已发现")
+	hud_node.toggle_map(true)
+	_check(main.get_node("HUD/Root/MapPanel").visible, "M 键打开地图面板")
+	hud_node.toggle_map(false)
+	_check(not main.get_node("HUD/Root/MapPanel").visible, "再按 M 关闭地图面板")
+	player.global_position = Vector2(1900, 1000)
+	main._update_map_markers()
+	_check(int(main.map_markers["market"]) == 2, "走进建筑标记为已探索")
+	var note := load("res://data/items/note_hospital.tres") as ItemData
+	player.inventory.add_item(note)
+	var note_index := player.inventory.slots.find(note)
+	player.use_item(note_index)
+	_check(int(main.map_markers["hospital"]) == 1, "阅读纸条解锁医院地图标记")
+	_check(player.inventory.count_of(note) == 0, "纸条阅读后消耗")
+
+	# —— 丧尸感知系统：视线遮挡 / 听觉 / 导航寻路 ——
+	var zscene_per := load("res://scenes/enemies/Zombie.tscn") as PackedScene
+	# 1) 导航网格已烘焙，路径会绕过超市墙体（直线穿墙 vs 绕行门口）
+	var nav_probe_z: Zombie = get_nodes_in_group("zombies")[0]
+	_check(nav_probe_z._nav_ready(), "主场景启动后导航网格已烘焙")
+	var nav_map: RID = nav_probe_z._nav.get_navigation_map()
+	var nav_path := NavigationServer2D.map_get_path(
+			nav_map, Vector2(1500, 1000), Vector2(1900, 1060), true)
+	var path_len := 0.0
+	for i in range(1, nav_path.size()):
+		path_len += nav_path[i - 1].distance_to(nav_path[i])
+	var straight := Vector2(1500, 1000).distance_to(Vector2(1900, 1060))
+	_check(nav_path.size() >= 2 and path_len > straight * 1.15,
+			"导航路径绕过超市墙体（经门口绕行而非直线穿墙）")
+	# 2) 隔墙失明：丧尸在超市墙外 184px（视野 260 内），但视线被墙体挡住
+	var wall_blind: Zombie = zscene_per.instantiate()
+	main.add_child(wall_blind)
+	wall_blind.global_position = Vector2(1780, 1200)
+	player.global_position = Vector2(1900, 1060)
+	for i in 8:
+		await physics_frame
+	_check(not wall_blind._sees_player, "隔着超市墙体丧尸看不见玩家")
+	_check(wall_blind._memory_left == 0.0, "没看见也没听到时丧尸不会凭空追踪")
+	# 3) 听觉：隔墙挥砍声让丧尸记住声源位置并前来调查
+	player._attack_toward(Vector2.RIGHT)
+	await physics_frame
+	await physics_frame
+	_check(wall_blind._memory_left > 0.0 \
+			and wall_blind._last_seen.distance_to(player.global_position) < 2.0,
+			"隔墙挥砍声引来丧尸调查（记住声源位置）")
+	wall_blind.queue_free()
+	# 4) 关门挡视线、开门能看见（营地安全屋）
+	var gate_door := main.get_node("Door") as Door
+	var gate_watcher: Zombie = zscene_per.instantiate()
+	main.add_child(gate_watcher)
+	gate_watcher.global_position = Vector2(200, 1540)
+	player.global_position = Vector2(200, 1420)
+	gate_door.set_closed(true)
+	for i in 8:
+		await physics_frame
+	_check(not gate_watcher._sees_player, "关着的门挡住丧尸视线")
+	gate_door.set_closed(false)
+	for i in 8:
+		await physics_frame
+	_check(gate_watcher._sees_player, "门打开后丧尸能看见屋内玩家")
+	gate_door.set_closed(true)
+	gate_watcher.queue_free()
+	# 5) 开阔地：视线通畅时正常追击移动
+	player.global_position = Vector2(760, 700)
+	var field_chaser: Zombie = zscene_per.instantiate()
+	main.add_child(field_chaser)
+	field_chaser.global_position = Vector2(600, 700)
+	for i in 4:
+		await physics_frame
+	_check(field_chaser._sees_player, "开阔地丧尸能看见玩家")
+	var chaser_start_x := field_chaser.global_position.x
+	for i in 30:
+		await physics_frame
+	_check(field_chaser.global_position.x > chaser_start_x + 20.0, "视线通畅时丧尸朝玩家移动")
+	field_chaser.queue_free()
+
+	# 存档 / 读档
+	var saved_day: int = main.get_node("DayNight").day_number
+	var saved_pos := player.global_position + Vector2(120.0, 80.0)
+	player.global_position = saved_pos
+	player.health = 66.0
+	player.inventory.clear()
+	player.inventory.add_item(load("res://data/items/food_canned.tres") as ItemData)
+	var zombies_before_save: int = get_nodes_in_group("zombies").size()
+	var pickups_before_save: int = get_nodes_in_group("pickups").size()
+	var fog_bits_before: String = fog.get_save_data()
+	main.map_markers["hardware"] = 2
+	main.save_game()
+	player.health = 10.0
+	player.inventory.clear()
+	player.global_position = Vector2(100.0, 100.0)
+	# 杀掉一只僵尸、捡走一件地上物资，模拟存档后世界发生变化
+	var victim: Zombie = get_nodes_in_group("zombies")[0]
+	victim.take_damage(999)
+	main.load_game()
+	_check(player.health == 66.0, "读档恢复生命值")
+	_check(player.inventory.item_count() == 1, "读档恢复背包物品")
+	_check(main.get_node("DayNight").day_number == saved_day, "读档恢复天数")
+	_check(player.global_position.distance_to(saved_pos) < 2.0, "读档恢复玩家位置")
+	_check(get_nodes_in_group("zombies").size() == zombies_before_save, "读档还原全部僵尸（含被杀的）")
+	_check(get_nodes_in_group("pickups").size() == pickups_before_save, "读档还原全部地上物资")
+	_check(thoughts.trigger_count("wake") == 1, "想法触发记录随存档保留")
+	_check(main.quest_stage == "escaped", "读档保留撤离任务的结局状态")
+	_check(fog.get_save_data() == fog_bits_before, "读档保留迷雾探索进度")
+	_check(int(main.map_markers["hardware"]) == 2, "读档保留地图标记状态")
+	var boss_after_load := 0
+	for node in get_nodes_in_group("zombies"):
+		if node is Brute:
+			boss_after_load += 1
+	_check(boss_after_load == 1, "读档后重型变异体仍以 Boss 形态存在")
+	var restored_variant_count := 0
+	for node in get_nodes_in_group("zombies"):
+		var z := node as Zombie
+		if z.health > 0 and z.health <= z.max_health:
+			restored_variant_count += 1
+	_check(restored_variant_count == zombies_before_save, "还原僵尸的血量与变体有效")
+
+	# ESC 暂停菜单
+	var hud: Hud = main.get_node("HUD")
+	_check(not paused and not hud._menu_open, "初始未暂停、菜单关闭")
+	hud.toggle_pause_menu()
+	_check(paused and hud._menu_open, "ESC 菜单打开时游戏暂停")
+	_check(hud.get_node("Root/PauseMenu").visible, "暂停菜单面板可见")
+	hud.toggle_pause_menu()
+	_check(not paused and not hud._menu_open, "关闭菜单后恢复运行")
+
+	print("----------------------------------------")
+	root.remove_child(main)
+	main.free()
+	if _failures == 0:
+		print("SMOKE TEST: ALL PASSED")
+		quit(0)
+	else:
+		print("SMOKE TEST: %d FAILED" % _failures)
+		quit(1)
+
+
+func _test_inventory() -> void:
+	var inv := Inventory.new(2)
+	var a := ItemData.new()
+	var b := ItemData.new()
+	var c := ItemData.new()
+	_check(inv.add_item(a), "有限容量：第 1 件可放入")
+	_check(inv.add_item(b), "有限容量：第 2 件可放入")
+	_check(not inv.add_item(c), "有限容量：第 3 件放不下")
+	inv.remove_item(0)
+	_check(inv.add_item(c), "腾出空位后可放入")
+	inv.resize_capacity(inv.capacity + 2)
+	_check(inv.capacity == 4 and inv.add_item(a), "扩容后容量与放置正确")
+
+	var storage := Inventory.new(-1)
+	for i in 20:
+		if not storage.add_item(a):
+			_check(false, "无限容量可一直放入")
+			break
+	_check(storage.item_count() == 20, "无限容量：20 件全部放入")
+
+
+func _check(condition: bool, label: String) -> void:
+	if condition:
+		print("PASS  " + label)
+	else:
+		_failures += 1
+		print("FAIL  " + label)

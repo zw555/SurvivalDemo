@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = "weapon_combat_dagger"
+display_name = "军用匕首"
+kind = "weapon"
+damage = 10
+attack_range = 48.0
+attack_cooldown = 0.35
+color = Color(0.55, 0.6, 0.65, 1)

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = "weapon_grenade"
+display_name = "手雷"
+kind = "grenade"
+damage = 60
+blast_radius = 90.0
+color = Color(0.3,0.42,0.25, 1)

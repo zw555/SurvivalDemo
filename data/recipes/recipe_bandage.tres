@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/recipe_data.gd" id="1_recipe"]
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="31_iscript"]
+[ext_resource type="Resource" path="res://data/items/med_bandage.tres" id="2_prod"]
+[ext_resource type="Resource" path="res://data/items/mat_cloth.tres" id="m0"]
+
+[resource]
+script = ExtResource("1_recipe")
+id = "recipe_bandage"
+product = ExtResource("2_prod")
+product_count = 1
+ingredients = Array[ExtResource("31_iscript")]([ExtResource("m0")])
+amounts = Array[int]([2])

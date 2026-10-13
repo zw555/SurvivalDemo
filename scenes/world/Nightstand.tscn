@@ -1,0 +1,48 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/storage_box.gd" id="1_box"]
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="2_item"]
+[ext_resource type="Resource" path="res://data/items/med_bandage.tres" id="3_bandage"]
+
+[sub_resource type="RectangleShape2D" id="NsInteract"]
+size = Vector2(90, 90)
+
+[sub_resource type="RectangleShape2D" id="NsBody"]
+size = Vector2(36, 36)
+
+[node name="Nightstand" type="Area2D" groups=["containers"]]
+script = ExtResource("1_box")
+display_name = "床头柜"
+open_prompt = "翻找床头柜"
+close_prompt = "关闭床头柜"
+capacity = 4
+starting_items = Array[ExtResource("2_item")]([ExtResource("3_bandage")])
+
+[node name="Shape" type="CollisionShape2D" parent="."]
+shape = SubResource("NsInteract")
+
+[node name="Body" type="StaticBody2D" parent="."]
+collision_layer = 3
+
+[node name="BodyShape" type="CollisionShape2D" parent="Body"]
+shape = SubResource("NsBody")
+
+[node name="Visual" type="Polygon2D" parent="."]
+color = Color(0.5, 0.38, 0.24, 1)
+polygon = PackedVector2Array(-18, -18, 18, -18, 18, 18, -18, 18)
+
+[node name="DrawerLine" type="Polygon2D" parent="."]
+color = Color(0.34, 0.25, 0.15, 1)
+polygon = PackedVector2Array(-18, -2, 18, -2, 18, 2, -18, 2)
+
+[node name="Label" type="Label" parent="."]
+offset_left = -30.0
+offset_top = -36.0
+offset_right = 30.0
+offset_bottom = -20.0
+text = "床头柜"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.9, 0.85, 0.75, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.85)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 11

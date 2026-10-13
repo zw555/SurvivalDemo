@@ -1,0 +1,32 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/bed.gd" id="1_bed"]
+
+[sub_resource type="RectangleShape2D" id="BedShape"]
+size = Vector2(64, 56)
+
+[node name="Bed" type="Area2D" groups=["beds"]]
+script = ExtResource("1_bed")
+
+[node name="Shape" type="CollisionShape2D" parent="."]
+shape = SubResource("BedShape")
+
+[node name="Visual" type="Polygon2D" parent="."]
+color = Color(0.33, 0.4, 0.54, 1)
+polygon = PackedVector2Array(-20, -11, 20, -11, 20, 11, -20, 11)
+
+[node name="Pillow" type="Polygon2D" parent="."]
+color = Color(0.78, 0.8, 0.84, 1)
+polygon = PackedVector2Array(-20, -11, -8, -11, -8, 11, -20, 11)
+
+[node name="Label" type="Label" parent="."]
+offset_left = -30.0
+offset_top = -34.0
+offset_right = 30.0
+offset_bottom = -18.0
+text = "床"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.85, 0.9, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.85)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 11

@@ -1,0 +1,1703 @@
+[gd_scene load_steps=112 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/main.gd" id="1_main"]
+[ext_resource type="Script" path="res://scripts/world/camp_storage.gd" id="2_camp"]
+[ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="3_player"]
+[ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="6_hud"]
+[ext_resource type="PackedScene" path="res://scenes/world/Bed.tscn" id="18_bed"]
+[ext_resource type="Resource" path="res://data/variants/runner.tres" id="19_runner"]
+[ext_resource type="Resource" path="res://data/variants/tank.tres" id="20_tank"]
+[ext_resource type="Script" path="res://scripts/world/day_night.gd" id="21_dn"]
+[ext_resource type="Script" path="res://scripts/world/spawn_point.gd" id="14_sp"]
+[ext_resource type="PackedScene" path="res://scenes/world/Door.tscn" id="22_door"]
+[ext_resource type="PackedScene" path="res://scenes/world/Wardrobe.tscn" id="23_wardrobe"]
+[ext_resource type="PackedScene" path="res://scenes/world/Fridge.tscn" id="24_fridge"]
+[ext_resource type="PackedScene" path="res://scenes/world/KitchenCabinet.tscn" id="25_cabinet"]
+[ext_resource type="PackedScene" path="res://scenes/world/Sofa.tscn" id="26_sofa"]
+[ext_resource type="PackedScene" path="res://scenes/world/Sink.tscn" id="27_sink"]
+[ext_resource type="Resource" path="res://data/loot/poor_table.tres" id="15_poor"]
+[ext_resource type="Resource" path="res://data/loot/rich_table.tres" id="16_rich"]
+[ext_resource type="Resource" path="res://data/loot/box_table.tres" id="17_box"]
+[ext_resource type="PackedScene" path="res://scenes/world/Shelf.tscn" id="30_shelf"]
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="31_iscript"]
+[ext_resource type="Resource" path="res://data/items/food_canned.tres" id="32_canned"]
+[ext_resource type="Resource" path="res://data/items/water_bottle.tres" id="33_water"]
+[ext_resource type="Resource" path="res://data/items/cloth_hat.tres" id="34_hat"]
+[ext_resource type="Resource" path="res://data/items/bottle_plastic.tres" id="35_bottle"]
+[ext_resource type="Resource" path="res://data/items/cloth_jacket.tres" id="36_jacket"]
+[ext_resource type="Resource" path="res://data/items/weapon_fruit_knife.tres" id="37_fruit"]
+[ext_resource type="Resource" path="res://data/items/food_rice.tres" id="38_rice"]
+[ext_resource type="Resource" path="res://data/items/food_flour.tres" id="39_flour"]
+[ext_resource type="Resource" path="res://data/items/backpack_small.tres" id="40_backpack"]
+[ext_resource type="Resource" path="res://data/items/food_egg.tres" id="41_egg"]
+[ext_resource type="Resource" path="res://data/items/food_milk.tres" id="42_milk"]
+[ext_resource type="Resource" path="res://data/items/food_meat.tres" id="43_meat"]
+[ext_resource type="Resource" path="res://data/items/food_dumpling.tres" id="44_dumpling"]
+[ext_resource type="PackedScene" path="res://scenes/world/MedCabinet.tscn" id="45_medcab"]
+[ext_resource type="PackedScene" path="res://scenes/world/Nightstand.tscn" id="46_nightstand"]
+[ext_resource type="Resource" path="res://data/items/med_bandage.tres" id="47_bandage"]
+[ext_resource type="Resource" path="res://data/items/med_painkiller.tres" id="48_pain"]
+[ext_resource type="Resource" path="res://data/items/med_firstaid.tres" id="49_firstaid"]
+[ext_resource type="Resource" path="res://data/items/weapon_pistol.tres" id="50_pistol"]
+[ext_resource type="Resource" path="res://data/items/weapon_rifle.tres" id="51_rifle"]
+[ext_resource type="Resource" path="res://data/items/weapon_grenade.tres" id="52_grenade"]
+[ext_resource type="Resource" path="res://data/items/weapon_baton.tres" id="53_baton"]
+[ext_resource type="Resource" path="res://data/items/ammo_pistol_box.tres" id="54_ammo9"]
+[ext_resource type="Resource" path="res://data/items/ammo_rifle_box.tres" id="55_ammor"]
+[ext_resource type="Resource" path="res://data/items/armor_vest.tres" id="56_vest"]
+[ext_resource type="PackedScene" path="res://scenes/world/Workbench.tscn" id="57_workbench"]
+[ext_resource type="Resource" path="res://data/loot/hardware_table.tres" id="58_hwtable"]
+[ext_resource type="Resource" path="res://data/items/mat_scrap_metal.tres" id="59_scrap"]
+[ext_resource type="Resource" path="res://data/items/mat_metal_pipe.tres" id="60_mpipe"]
+[ext_resource type="Resource" path="res://data/items/mat_wood_board.tres" id="61_board"]
+[ext_resource type="Resource" path="res://data/items/mat_nails.tres" id="62_nails"]
+[ext_resource type="Resource" path="res://data/items/mat_duct_tape.tres" id="63_tape"]
+[ext_resource type="Resource" path="res://data/items/mat_cloth.tres" id="64_cloth"]
+[ext_resource type="Resource" path="res://data/items/mat_rope.tres" id="65_rope"]
+[ext_resource type="Resource" path="res://data/items/weapon_shovel.tres" id="66_shovel"]
+[ext_resource type="Script" path="res://scripts/systems/thought_system.gd" id="67_thought"]
+[ext_resource type="PackedScene" path="res://scenes/world/Radio.tscn" id="68_radio"]
+[ext_resource type="Script" path="res://scripts/systems/fog_of_war.gd" id="69_fog"]
+[ext_resource type="Resource" path="res://data/items/note_hospital.tres" id="70_notehosp"]
+[ext_resource type="Resource" path="res://data/items/note_military.tres" id="71_notemil"]
+[ext_resource type="PackedScene" path="res://scenes/world/SurvivorNpc.tscn" id="69_pilot"]
+[ext_resource type="Resource" path="res://data/items/fuel.tres" id="70_fuel"]
+
+[sub_resource type="RectangleShape2D" id="WallH"]
+size = Vector2(2480, 40)
+
+[sub_resource type="RectangleShape2D" id="WallV"]
+size = Vector2(40, 1680)
+
+[sub_resource type="RectangleShape2D" id="BuildingA"]
+size = Vector2(220, 140)
+
+[sub_resource type="RectangleShape2D" id="PoliceWallV280"]
+size = Vector2(16, 280)
+
+[sub_resource type="RectangleShape2D" id="PSeg90"]
+size = Vector2(90, 16)
+
+[sub_resource type="RectangleShape2D" id="PSeg70"]
+size = Vector2(70, 16)
+
+[sub_resource type="RectangleShape2D" id="PInnerV144"]
+size = Vector2(16, 144)
+
+[sub_resource type="RectangleShape2D" id="MarketWallH"]
+size = Vector2(480, 16)
+
+[sub_resource type="RectangleShape2D" id="MarketSeg200"]
+size = Vector2(200, 16)
+
+[sub_resource type="RectangleShape2D" id="MarketWallV"]
+size = Vector2(16, 360)
+
+[sub_resource type="RectangleShape2D" id="MarketInner340"]
+size = Vector2(340, 16)
+
+[sub_resource type="RectangleShape2D" id="MarketInner80"]
+size = Vector2(80, 16)
+
+[sub_resource type="RectangleShape2D" id="MarketCheckout"]
+size = Vector2(100, 24)
+
+[sub_resource type="RectangleShape2D" id="HospWallH440"]
+size = Vector2(440, 16)
+
+[sub_resource type="RectangleShape2D" id="HospSeg180"]
+size = Vector2(180, 16)
+
+[sub_resource type="RectangleShape2D" id="HospSeg160"]
+size = Vector2(160, 16)
+
+[sub_resource type="RectangleShape2D" id="HospSeg80"]
+size = Vector2(80, 16)
+
+[sub_resource type="RectangleShape2D" id="HospWallV320"]
+size = Vector2(16, 320)
+
+[sub_resource type="RectangleShape2D" id="HospInnerV184"]
+size = Vector2(16, 184)
+
+[sub_resource type="RectangleShape2D" id="HospFront"]
+size = Vector2(90, 20)
+
+[sub_resource type="RectangleShape2D" id="HospBench"]
+size = Vector2(80, 20)
+
+[sub_resource type="RectangleShape2D" id="HospBed"]
+size = Vector2(64, 36)
+
+[sub_resource type="RectangleShape2D" id="CampShape"]
+size = Vector2(700, 400)
+
+[sub_resource type="RectangleShape2D" id="HouseWallH700"]
+size = Vector2(700, 16)
+
+[sub_resource type="RectangleShape2D" id="HouseWallSeg110"]
+size = Vector2(110, 16)
+
+[sub_resource type="RectangleShape2D" id="HouseWallSeg530"]
+size = Vector2(530, 16)
+
+[sub_resource type="RectangleShape2D" id="HouseWallV400"]
+size = Vector2(16, 400)
+
+[sub_resource type="RectangleShape2D" id="HouseWallSeg180"]
+size = Vector2(180, 16)
+
+[sub_resource type="RectangleShape2D" id="HouseWallSeg256"]
+size = Vector2(256, 16)
+
+[sub_resource type="RectangleShape2D" id="HouseWallSeg136"]
+size = Vector2(136, 16)
+
+[sub_resource type="RectangleShape2D" id="HouseWallSeg200V"]
+size = Vector2(16, 200)
+
+[sub_resource type="RectangleShape2D" id="HouseWallSeg80V"]
+size = Vector2(16, 80)
+
+[sub_resource type="RectangleShape2D" id="HouseWallSeg56V"]
+size = Vector2(16, 56)
+
+[sub_resource type="RectangleShape2D" id="HouseWallSeg60V"]
+size = Vector2(16, 60)
+
+[sub_resource type="RectangleShape2D" id="HouseWallSeg76V"]
+size = Vector2(16, 76)
+
+[sub_resource type="RectangleShape2D" id="FenceH100"]
+size = Vector2(100, 8)
+
+[sub_resource type="RectangleShape2D" id="FenceV200"]
+size = Vector2(8, 200)
+
+[sub_resource type="RectangleShape2D" id="CounterRect"]
+size = Vector2(110, 40)
+
+[sub_resource type="RectangleShape2D" id="TableRect"]
+size = Vector2(80, 80)
+
+[sub_resource type="RectangleShape2D" id="ToiletRect"]
+size = Vector2(40, 40)
+
+[sub_resource type="RectangleShape2D" id="FlowerRect"]
+size = Vector2(30, 20)
+
+[sub_resource type="RectangleShape2D" id="TVRect"]
+size = Vector2(64, 20)
+
+[sub_resource type="RectangleShape2D" id="HWInner132"]
+size = Vector2(132, 16)
+
+[sub_resource type="RectangleShape2D" id="MilWallH480"]
+size = Vector2(480, 16)
+
+[sub_resource type="RectangleShape2D" id="MilWallV360"]
+size = Vector2(16, 360)
+
+[sub_resource type="RectangleShape2D" id="MilSeg200"]
+size = Vector2(200, 16)
+
+[sub_resource type="RectangleShape2D" id="MilInner192"]
+size = Vector2(16, 192)
+
+[sub_resource type="RectangleShape2D" id="MilHelicopter"]
+size = Vector2(90, 36)
+
+[sub_resource type="RectangleShape2D" id="MilDrum"]
+size = Vector2(22, 22)
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_main")
+
+[node name="Ground" type="Polygon2D" parent="."]
+color = Color(0.14, 0.17, 0.14, 1)
+polygon = PackedVector2Array(0, 0, 2400, 0, 2400, 1600, 0, 1600)
+
+[node name="CampArea" type="Area2D" parent="."]
+position = Vector2(410, 1280)
+script = ExtResource("2_camp")
+
+[node name="Shape" type="CollisionShape2D" parent="CampArea"]
+shape = SubResource("CampShape")
+
+[node name="Visual" type="Polygon2D" parent="CampArea"]
+color = Color(0.3, 0.24, 0.16, 1)
+polygon = PackedVector2Array(-350, -200, 350, -200, 350, 200, -350, 200)
+
+[node name="BedroomFloor" type="Polygon2D" parent="CampArea"]
+color = Color(0.33, 0.26, 0.17, 1)
+polygon = PackedVector2Array(-350, -200, 50, -200, 50, 0, -350, 0)
+
+[node name="BathroomFloor" type="Polygon2D" parent="CampArea"]
+color = Color(0.26, 0.29, 0.29, 1)
+polygon = PackedVector2Array(50, -200, 350, -200, 350, 0, 50, 0)
+
+[node name="LivingFloor" type="Polygon2D" parent="CampArea"]
+color = Color(0.32, 0.25, 0.17, 1)
+polygon = PackedVector2Array(-350, 0, 50, 0, 50, 200, -350, 200)
+
+[node name="KitchenFloor" type="Polygon2D" parent="CampArea"]
+color = Color(0.36, 0.3, 0.19, 1)
+polygon = PackedVector2Array(50, 0, 350, 0, 350, 200, 50, 200)
+
+[node name="BalconyFloor" type="Polygon2D" parent="CampArea"]
+color = Color(0.3, 0.31, 0.29, 1)
+polygon = PackedVector2Array(350, 0, 450, 0, 450, 200, 350, 200)
+
+[node name="Label" type="Label" parent="CampArea"]
+offset_left = -110.0
+offset_top = -232.0
+offset_right = 110.0
+offset_bottom = -208.0
+text = "安全屋 · 记得关门"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.85, 0.95, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+
+[node name="BedroomLabel" type="Label" parent="CampArea"]
+offset_left = -60.0
+offset_top = -182.0
+offset_right = 60.0
+offset_bottom = -158.0
+text = "卧室"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.8, 0.78, 0.7, 1)
+theme_override_font_sizes/font_size = 12
+
+[node name="BathroomLabel" type="Label" parent="CampArea"]
+offset_left = 140.0
+offset_top = -182.0
+offset_right = 260.0
+offset_bottom = -158.0
+text = "厕所"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.8, 0.78, 0.7, 1)
+theme_override_font_sizes/font_size = 12
+
+[node name="LivingLabel" type="Label" parent="CampArea"]
+offset_left = -210.0
+offset_top = 88.0
+offset_right = -90.0
+offset_bottom = 112.0
+text = "客厅"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.8, 0.78, 0.7, 1)
+theme_override_font_sizes/font_size = 12
+
+[node name="KitchenLabel" type="Label" parent="CampArea"]
+offset_left = 140.0
+offset_top = 88.0
+offset_right = 260.0
+offset_bottom = 112.0
+text = "厨房"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.8, 0.78, 0.7, 1)
+theme_override_font_sizes/font_size = 12
+
+[node name="BalconyLabel" type="Label" parent="CampArea"]
+offset_left = 340.0
+offset_top = 88.0
+offset_right = 460.0
+offset_bottom = 112.0
+text = "阳台"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.8, 0.78, 0.7, 1)
+theme_override_font_sizes/font_size = 12
+
+[node name="HouseWalls" type="StaticBody2D" parent="."]
+collision_layer = 3
+
+[node name="TopShape" type="CollisionShape2D" parent="HouseWalls"]
+position = Vector2(410, 1080)
+shape = SubResource("HouseWallH700")
+
+[node name="TopVisual" type="Polygon2D" parent="HouseWalls"]
+color = Color(0.42, 0.3, 0.18, 1)
+position = Vector2(410, 1080)
+polygon = PackedVector2Array(-350, -8, 350, -8, 350, 8, -350, 8)
+
+[node name="BottomLeftShape" type="CollisionShape2D" parent="HouseWalls"]
+position = Vector2(115, 1480)
+shape = SubResource("HouseWallSeg110")
+
+[node name="BottomLeftVisual" type="Polygon2D" parent="HouseWalls"]
+color = Color(0.42, 0.3, 0.18, 1)
+position = Vector2(115, 1480)
+polygon = PackedVector2Array(-55, -8, 55, -8, 55, 8, -55, 8)
+
+[node name="BottomRightShape" type="CollisionShape2D" parent="HouseWalls"]
+position = Vector2(495, 1480)
+shape = SubResource("HouseWallSeg530")
+
+[node name="BottomRightVisual" type="Polygon2D" parent="HouseWalls"]
+color = Color(0.42, 0.3, 0.18, 1)
+position = Vector2(495, 1480)
+polygon = PackedVector2Array(-265, -8, 265, -8, 265, 8, -265, 8)
+
+[node name="LeftShape" type="CollisionShape2D" parent="HouseWalls"]
+position = Vector2(60, 1280)
+shape = SubResource("HouseWallV400")
+
+[node name="LeftVisual" type="Polygon2D" parent="HouseWalls"]
+color = Color(0.42, 0.3, 0.18, 1)
+position = Vector2(60, 1280)
+polygon = PackedVector2Array(-8, -200, 8, -200, 8, 200, -8, 200)
+
+[node name="RightNorthShape" type="CollisionShape2D" parent="HouseWalls"]
+position = Vector2(760, 1180)
+shape = SubResource("HouseWallSeg200V")
+
+[node name="RightNorthVisual" type="Polygon2D" parent="HouseWalls"]
+color = Color(0.42, 0.3, 0.18, 1)
+position = Vector2(760, 1180)
+polygon = PackedVector2Array(-8, -100, 8, -100, 8, 100, -8, 100)
+
+[node name="RightMidShape" type="CollisionShape2D" parent="HouseWalls"]
+position = Vector2(760, 1310)
+shape = SubResource("HouseWallSeg60V")
+
+[node name="RightMidVisual" type="Polygon2D" parent="HouseWalls"]
+color = Color(0.42, 0.3, 0.18, 1)
+position = Vector2(760, 1310)
+polygon = PackedVector2Array(-8, -30, 8, -30, 8, 30, -8, 30)
+
+[node name="RightLowShape" type="CollisionShape2D" parent="HouseWalls"]
+position = Vector2(760, 1442)
+shape = SubResource("HouseWallSeg76V")
+
+[node name="RightLowVisual" type="Polygon2D" parent="HouseWalls"]
+color = Color(0.42, 0.3, 0.18, 1)
+position = Vector2(760, 1442)
+polygon = PackedVector2Array(-8, -38, 8, -38, 8, 38, -8, 38)
+
+[node name="InnerHWestShape" type="CollisionShape2D" parent="HouseWalls"]
+position = Vector2(150, 1280)
+shape = SubResource("HouseWallSeg180")
+
+[node name="InnerHWestVisual" type="Polygon2D" parent="HouseWalls"]
+color = Color(0.5, 0.38, 0.25, 1)
+position = Vector2(150, 1280)
+polygon = PackedVector2Array(-90, -8, 90, -8, 90, 8, -90, 8)
+
+[node name="InnerHMidShape" type="CollisionShape2D" parent="HouseWalls"]
+position = Vector2(432, 1280)
+shape = SubResource("HouseWallSeg256")
+
+[node name="InnerHMidVisual" type="Polygon2D" parent="HouseWalls"]
+color = Color(0.5, 0.38, 0.25, 1)
+position = Vector2(432, 1280)
+polygon = PackedVector2Array(-128, -8, 128, -8, 128, 8, -128, 8)
+
+[node name="InnerHEastShape" type="CollisionShape2D" parent="HouseWalls"]
+position = Vector2(692, 1280)
+shape = SubResource("HouseWallSeg136")
+
+[node name="InnerHEastVisual" type="Polygon2D" parent="HouseWalls"]
+color = Color(0.5, 0.38, 0.25, 1)
+position = Vector2(692, 1280)
+polygon = PackedVector2Array(-68, -8, 68, -8, 68, 8, -68, 8)
+
+[node name="InnerVNorthShape" type="CollisionShape2D" parent="HouseWalls"]
+position = Vector2(460, 1180)
+shape = SubResource("HouseWallSeg200V")
+
+[node name="InnerVNorthVisual" type="Polygon2D" parent="HouseWalls"]
+color = Color(0.5, 0.38, 0.25, 1)
+position = Vector2(460, 1180)
+polygon = PackedVector2Array(-8, -100, 8, -100, 8, 100, -8, 100)
+
+[node name="InnerVSouthMidShape" type="CollisionShape2D" parent="HouseWalls"]
+position = Vector2(460, 1320)
+shape = SubResource("HouseWallSeg80V")
+
+[node name="InnerVSouthMidVisual" type="Polygon2D" parent="HouseWalls"]
+color = Color(0.5, 0.38, 0.25, 1)
+position = Vector2(460, 1320)
+polygon = PackedVector2Array(-8, -40, 8, -40, 8, 40, -8, 40)
+
+[node name="InnerVSouthLowShape" type="CollisionShape2D" parent="HouseWalls"]
+position = Vector2(460, 1452)
+shape = SubResource("HouseWallSeg56V")
+
+[node name="InnerVSouthLowVisual" type="Polygon2D" parent="HouseWalls"]
+color = Color(0.5, 0.38, 0.25, 1)
+position = Vector2(460, 1452)
+polygon = PackedVector2Array(-8, -28, 8, -28, 8, 28, -8, 28)
+
+[node name="BalconyFence" type="StaticBody2D" parent="."]
+collision_layer = 3
+
+[node name="EastShape" type="CollisionShape2D" parent="BalconyFence"]
+position = Vector2(860, 1380)
+shape = SubResource("FenceV200")
+
+[node name="EastVisual" type="Polygon2D" parent="BalconyFence"]
+color = Color(0.45, 0.46, 0.44, 1)
+position = Vector2(860, 1380)
+polygon = PackedVector2Array(-4, -100, 4, -100, 4, 100, -4, 100)
+
+[node name="NorthShape" type="CollisionShape2D" parent="BalconyFence"]
+position = Vector2(810, 1280)
+shape = SubResource("FenceH100")
+
+[node name="NorthVisual" type="Polygon2D" parent="BalconyFence"]
+color = Color(0.45, 0.46, 0.44, 1)
+position = Vector2(810, 1280)
+polygon = PackedVector2Array(-50, -4, 50, -4, 50, 4, -50, 4)
+
+[node name="SouthShape" type="CollisionShape2D" parent="BalconyFence"]
+position = Vector2(810, 1480)
+shape = SubResource("FenceH100")
+
+[node name="SouthVisual" type="Polygon2D" parent="BalconyFence"]
+color = Color(0.45, 0.46, 0.44, 1)
+position = Vector2(810, 1480)
+polygon = PackedVector2Array(-50, -4, 50, -4, 50, 4, -50, 4)
+
+[node name="Furniture" type="StaticBody2D" parent="."]
+collision_layer = 3
+
+[node name="CounterShape" type="CollisionShape2D" parent="Furniture"]
+position = Vector2(515, 1310)
+shape = SubResource("CounterRect")
+
+[node name="CounterVisual" type="Polygon2D" parent="Furniture"]
+color = Color(0.25, 0.2, 0.15, 1)
+position = Vector2(515, 1310)
+polygon = PackedVector2Array(-55, -20, 55, -20, 55, 20, -55, 20)
+
+[node name="ToiletShape" type="CollisionShape2D" parent="Furniture"]
+position = Vector2(730, 1120)
+shape = SubResource("ToiletRect")
+
+[node name="ToiletVisual" type="Polygon2D" parent="Furniture"]
+color = Color(0.75, 0.78, 0.75, 1)
+position = Vector2(730, 1120)
+polygon = PackedVector2Array(-20, -20, 20, -20, 20, 20, -20, 20)
+
+[node name="TableShape" type="CollisionShape2D" parent="Furniture"]
+position = Vector2(170, 1330)
+shape = SubResource("TableRect")
+
+[node name="TableVisual" type="Polygon2D" parent="Furniture"]
+color = Color(0.45, 0.33, 0.2, 1)
+position = Vector2(170, 1330)
+polygon = PackedVector2Array(-40, -40, 40, -40, 40, 40, -40, 40)
+
+[node name="FlowerBoxShape" type="CollisionShape2D" parent="Furniture"]
+position = Vector2(785, 1300)
+shape = SubResource("FlowerRect")
+
+[node name="FlowerBoxVisual" type="Polygon2D" parent="Furniture"]
+color = Color(0.25, 0.4, 0.22, 1)
+position = Vector2(785, 1300)
+polygon = PackedVector2Array(-15, -10, 15, -10, 15, 10, -15, 10)
+
+[node name="TVShape" type="CollisionShape2D" parent="Furniture"]
+position = Vector2(330, 1450)
+shape = SubResource("TVRect")
+
+[node name="TVVisual" type="Polygon2D" parent="Furniture"]
+color = Color(0.12, 0.12, 0.14, 1)
+position = Vector2(330, 1450)
+polygon = PackedVector2Array(-32, -10, 32, -10, 32, 10, -32, 10)
+
+[node name="TVScreen" type="Polygon2D" parent="Furniture"]
+color = Color(0.18, 0.26, 0.3, 1)
+position = Vector2(330, 1450)
+polygon = PackedVector2Array(-26, -6, 26, -6, 26, 6, -26, 6)
+
+[node name="CounterLabel" type="Label" parent="Furniture"]
+offset_left = 485.0
+offset_top = 1280.0
+offset_right = 545.0
+offset_bottom = 1296.0
+text = "灶台"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.85, 0.9, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.85)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 11
+
+[node name="ToiletLabel" type="Label" parent="Furniture"]
+offset_left = 700.0
+offset_top = 1086.0
+offset_right = 760.0
+offset_bottom = 1102.0
+text = "马桶"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.85, 0.9, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.85)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 11
+
+[node name="TVLabel" type="Label" parent="Furniture"]
+offset_left = 300.0
+offset_top = 1420.0
+offset_right = 360.0
+offset_bottom = 1436.0
+text = "电视"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.85, 0.9, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.85)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 11
+
+[node name="Door" parent="." instance=ExtResource("22_door")]
+position = Vector2(200, 1480)
+
+[node name="SpawnPoint" type="Marker2D" parent="."]
+position = Vector2(250, 1380)
+
+[node name="Bed" parent="." instance=ExtResource("18_bed")]
+position = Vector2(150, 1160)
+
+[node name="Wardrobe" parent="." instance=ExtResource("23_wardrobe")]
+position = Vector2(360, 1115)
+
+[node name="Fridge" parent="." instance=ExtResource("24_fridge")]
+position = Vector2(420, 1310)
+
+[node name="KitchenCabinet" parent="." instance=ExtResource("25_cabinet")]
+position = Vector2(600, 1450)
+
+[node name="Sofa" parent="." instance=ExtResource("26_sofa")]
+position = Vector2(88, 1380)
+
+[node name="Sink" parent="." instance=ExtResource("27_sink")]
+position = Vector2(650, 1110)
+
+[node name="Workbench" parent="." instance=ExtResource("57_workbench")]
+position = Vector2(400, 1210)
+
+[node name="Radio" parent="." instance=ExtResource("68_radio")]
+position = Vector2(480, 1400)
+
+[node name="ThoughtSystem" type="Node" parent="."]
+script = ExtResource("67_thought")
+
+[node name="Walls" type="StaticBody2D" parent="."]
+collision_layer = 3
+
+[node name="Top" type="CollisionShape2D" parent="Walls"]
+position = Vector2(1200, -20)
+shape = SubResource("WallH")
+
+[node name="Bottom" type="CollisionShape2D" parent="Walls"]
+position = Vector2(1200, 1620)
+shape = SubResource("WallH")
+
+[node name="Left" type="CollisionShape2D" parent="Walls"]
+position = Vector2(-20, 800)
+shape = SubResource("WallV")
+
+[node name="Right" type="CollisionShape2D" parent="Walls"]
+position = Vector2(2420, 800)
+shape = SubResource("WallV")
+
+[node name="Buildings" type="StaticBody2D" parent="."]
+collision_layer = 3
+
+[node name="MilitaryBase" type="Node2D" parent="."]
+
+[node name="Floor" type="Polygon2D" parent="MilitaryBase"]
+color = Color(0.3, 0.34, 0.3, 1)
+polygon = PackedVector2Array(1040, 150, 1520, 150, 1520, 510, 1040, 510)
+
+[node name="PadFloor" type="Polygon2D" parent="MilitaryBase"]
+color = Color(0.42, 0.44, 0.47, 1)
+polygon = PackedVector2Array(1310, 165, 1515, 165, 1515, 495, 1310, 495)
+
+[node name="PadH" type="Label" parent="MilitaryBase"]
+offset_left = 1390.0
+offset_top = 280.0
+offset_right = 1440.0
+offset_bottom = 320.0
+text = "H"
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_colors/font_color = Color(0.95, 0.95, 0.9, 1)
+theme_override_colors/font_outline_color = Color(0.2, 0.2, 0.22, 0.9)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 28
+
+[node name="BaseLabel" type="Label" parent="MilitaryBase"]
+offset_left = 1180.0
+offset_top = 96.0
+offset_right = 1380.0
+offset_bottom = 130.0
+text = "城北军营（撤离点）"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.2, 0.4, 0.2, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 14
+
+[node name="Walls" type="StaticBody2D" parent="MilitaryBase"]
+collision_layer = 3
+
+[node name="TopShape" type="CollisionShape2D" parent="MilitaryBase/Walls"]
+position = Vector2(1280, 158)
+shape = SubResource("MilWallH480")
+
+[node name="TopVisual" type="Polygon2D" parent="MilitaryBase/Walls"]
+color = Color(0.62, 0.63, 0.66, 1)
+position = Vector2(1280, 158)
+polygon = PackedVector2Array(-240, -8, 240, -8, 240, 8, -240, 8)
+
+[node name="BottomLeftShape" type="CollisionShape2D" parent="MilitaryBase/Walls"]
+position = Vector2(1149, 502)
+shape = SubResource("MilSeg200")
+
+[node name="BottomLeftVisual" type="Polygon2D" parent="MilitaryBase/Walls"]
+color = Color(0.62, 0.63, 0.66, 1)
+position = Vector2(1149, 502)
+polygon = PackedVector2Array(-100, -8, 100, -8, 100, 8, -100, 8)
+
+[node name="BottomRightShape" type="CollisionShape2D" parent="MilitaryBase/Walls"]
+position = Vector2(1421, 502)
+shape = SubResource("HospSeg180")
+
+[node name="BottomRightVisual" type="Polygon2D" parent="MilitaryBase/Walls"]
+color = Color(0.62, 0.63, 0.66, 1)
+position = Vector2(1421, 502)
+polygon = PackedVector2Array(-90, -8, 90, -8, 90, 8, -90, 8)
+
+[node name="LeftShape" type="CollisionShape2D" parent="MilitaryBase/Walls"]
+position = Vector2(1048, 330)
+shape = SubResource("MilWallV360")
+
+[node name="LeftVisual" type="Polygon2D" parent="MilitaryBase/Walls"]
+color = Color(0.62, 0.63, 0.66, 1)
+position = Vector2(1048, 330)
+polygon = PackedVector2Array(-8, -180, 8, -180, 8, 180, -8, 180)
+
+[node name="RightShape" type="CollisionShape2D" parent="MilitaryBase/Walls"]
+position = Vector2(1512, 330)
+shape = SubResource("MilWallV360")
+
+[node name="RightVisual" type="Polygon2D" parent="MilitaryBase/Walls"]
+color = Color(0.62, 0.63, 0.66, 1)
+position = Vector2(1512, 330)
+polygon = PackedVector2Array(-8, -180, 8, -180, 8, 180, -8, 180)
+
+[node name="InnerDividerShape" type="CollisionShape2D" parent="MilitaryBase/Walls"]
+position = Vector2(1300, 254)
+shape = SubResource("MilInner192")
+
+[node name="InnerDividerVisual" type="Polygon2D" parent="MilitaryBase/Walls"]
+color = Color(0.55, 0.56, 0.59, 1)
+position = Vector2(1300, 254)
+polygon = PackedVector2Array(-8, -96, 8, -96, 8, 96, -8, 96)
+
+[node name="Helicopter" type="Node2D" parent="MilitaryBase"]
+
+[node name="Hull" type="StaticBody2D" parent="MilitaryBase/Helicopter"]
+collision_layer = 3
+
+[node name="HullShape" type="CollisionShape2D" parent="MilitaryBase/Helicopter/Hull"]
+position = Vector2(1415, 300)
+shape = SubResource("MilHelicopter")
+
+[node name="TailBoom" type="Polygon2D" parent="MilitaryBase/Helicopter"]
+color = Color(0.2, 0.26, 0.22, 1)
+polygon = PackedVector2Array(1320, 296, 1380, 293, 1380, 307, 1320, 304)
+
+[node name="TailRotor" type="Polygon2D" parent="MilitaryBase/Helicopter"]
+color = Color(0.12, 0.12, 0.14, 1)
+polygon = PackedVector2Array(1318, 280, 1322, 280, 1322, 308, 1318, 308)
+
+[node name="Fuselage" type="Polygon2D" parent="MilitaryBase/Helicopter"]
+color = Color(0.2, 0.26, 0.22, 1)
+polygon = PackedVector2Array(1370, 286, 1445, 284, 1460, 292, 1460, 308, 1445, 316, 1370, 314)
+
+[node name="Cockpit" type="Polygon2D" parent="MilitaryBase/Helicopter"]
+color = Color(0.45, 0.65, 0.75, 1)
+polygon = PackedVector2Array(1440, 288, 1458, 293, 1458, 307, 1440, 312)
+
+[node name="Skids" type="Polygon2D" parent="MilitaryBase/Helicopter"]
+color = Color(0.14, 0.15, 0.16, 1)
+polygon = PackedVector2Array(1375, 318, 1455, 318, 1455, 322, 1375, 322)
+
+[node name="Rotor" type="Polygon2D" parent="MilitaryBase/Helicopter"]
+color = Color(0.12, 0.12, 0.14, 1)
+polygon = PackedVector2Array(1295, 298, 1535, 298, 1535, 302, 1295, 302)
+
+[node name="RotorHub" type="Polygon2D" parent="MilitaryBase/Helicopter"]
+color = Color(0.3, 0.3, 0.33, 1)
+polygon = PackedVector2Array(1410, 294, 1420, 294, 1420, 306, 1410, 306)
+
+[node name="BarrackBeds" type="StaticBody2D" parent="MilitaryBase"]
+collision_layer = 3
+
+[node name="Bed1Shape" type="CollisionShape2D" parent="MilitaryBase/BarrackBeds"]
+position = Vector2(1110, 220)
+shape = SubResource("HospBed")
+
+[node name="Bed1Visual" type="Polygon2D" parent="MilitaryBase/BarrackBeds"]
+color = Color(0.5, 0.55, 0.6, 1)
+position = Vector2(1110, 220)
+polygon = PackedVector2Array(-32, -18, 32, -18, 32, 18, -32, 18)
+
+[node name="Bed1Blanket" type="Polygon2D" parent="MilitaryBase/BarrackBeds"]
+color = Color(0.4, 0.48, 0.42, 1)
+position = Vector2(1110, 220)
+polygon = PackedVector2Array(-2, -16, 30, -16, 30, 16, -2, 16)
+
+[node name="Bed2Shape" type="CollisionShape2D" parent="MilitaryBase/BarrackBeds"]
+position = Vector2(1110, 290)
+shape = SubResource("HospBed")
+
+[node name="Bed2Visual" type="Polygon2D" parent="MilitaryBase/BarrackBeds"]
+color = Color(0.5, 0.55, 0.6, 1)
+position = Vector2(1110, 290)
+polygon = PackedVector2Array(-32, -18, 32, -18, 32, 18, -32, 18)
+
+[node name="Bed2Blanket" type="Polygon2D" parent="MilitaryBase/BarrackBeds"]
+color = Color(0.4, 0.48, 0.42, 1)
+position = Vector2(1110, 290)
+polygon = PackedVector2Array(-2, -16, 30, -16, 30, 16, -2, 16)
+
+[node name="Drum1" type="StaticBody2D" parent="MilitaryBase"]
+collision_layer = 3
+
+[node name="Shape" type="CollisionShape2D" parent="MilitaryBase/Drum1"]
+position = Vector2(1130, 452)
+shape = SubResource("MilDrum")
+
+[node name="Visual" type="Polygon2D" parent="MilitaryBase/Drum1"]
+color = Color(0.6, 0.38, 0.12, 1)
+position = Vector2(1130, 452)
+polygon = PackedVector2Array(-11, -11, 11, -11, 11, 11, -11, 11)
+
+[node name="Drum2" type="StaticBody2D" parent="MilitaryBase"]
+collision_layer = 3
+
+[node name="Shape" type="CollisionShape2D" parent="MilitaryBase/Drum2"]
+position = Vector2(1240, 470)
+shape = SubResource("MilDrum")
+
+[node name="Visual" type="Polygon2D" parent="MilitaryBase/Drum2"]
+color = Color(0.6, 0.38, 0.12, 1)
+position = Vector2(1240, 470)
+polygon = PackedVector2Array(-11, -11, 11, -11, 11, 11, -11, 11)
+
+[node name="MilCabinet" parent="MilitaryBase" instance=ExtResource("30_shelf")]
+position = Vector2(1240, 180)
+display_name = "军需柜"
+starting_items = Array[ExtResource("31_iscript")]([ExtResource("54_ammo9"), ExtResource("55_ammor"), ExtResource("49_firstaid"), ExtResource("32_canned"), ExtResource("32_canned"), ExtResource("52_grenade"), ExtResource("52_grenade")])
+
+[node name="FuelDrum1" parent="MilitaryBase" instance=ExtResource("30_shelf")]
+position = Vector2(1160, 452)
+display_name = "油桶"
+starting_items = Array[ExtResource("31_iscript")]([ExtResource("70_fuel"), ExtResource("70_fuel")])
+
+[node name="FuelDrum2" parent="MilitaryBase" instance=ExtResource("30_shelf")]
+position = Vector2(1210, 470)
+display_name = "油桶"
+starting_items = Array[ExtResource("31_iscript")]([ExtResource("70_fuel"), ExtResource("70_fuel")])
+
+[node name="Pilot" parent="." instance=ExtResource("69_pilot")]
+position = Vector2(1180, 230)
+
+[node name="Hospital" type="Node2D" parent="."]
+
+[node name="Floor" type="Polygon2D" parent="Hospital"]
+color = Color(0.82, 0.83, 0.85, 1)
+polygon = PackedVector2Array(1560, 140, 2000, 140, 2000, 460, 1560, 460)
+
+[node name="PharmacyFloor" type="Polygon2D" parent="Hospital"]
+color = Color(0.76, 0.82, 0.78, 1)
+polygon = PackedVector2Array(1560, 140, 1780, 140, 1780, 340, 1560, 340)
+
+[node name="WardFloor" type="Polygon2D" parent="Hospital"]
+color = Color(0.78, 0.8, 0.86, 1)
+polygon = PackedVector2Array(1780, 140, 2000, 140, 2000, 340, 1780, 340)
+
+[node name="SignLabel" type="Label" parent="Hospital"]
+offset_left = 1660.0
+offset_top = 104.0
+offset_right = 1900.0
+offset_bottom = 130.0
+text = "仁爱医院"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.72, 0.18, 0.18, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 14
+
+[node name="CrossV" type="Polygon2D" parent="Hospital"]
+color = Color(0.85, 0.25, 0.25, 1)
+polygon = PackedVector2Array(1944, 104, 1956, 104, 1956, 132, 1944, 132)
+
+[node name="CrossH" type="Polygon2D" parent="Hospital"]
+color = Color(0.85, 0.25, 0.25, 1)
+polygon = PackedVector2Array(1938, 112, 1962, 112, 1962, 124, 1938, 124)
+
+[node name="LobbyLabel" type="Label" parent="Hospital"]
+offset_left = 1700.0
+offset_top = 370.0
+offset_right = 1860.0
+offset_bottom = 394.0
+text = "挂号大厅"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.95, 0.95, 0.97, 1)
+theme_override_colors/font_outline_color = Color(0.3, 0.3, 0.35, 0.9)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 11
+
+[node name="PharmacyLabel" type="Label" parent="Hospital"]
+offset_left = 1590.0
+offset_top = 300.0
+offset_right = 1710.0
+offset_bottom = 324.0
+text = "药房"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.85, 0.95, 0.88, 1)
+theme_override_colors/font_outline_color = Color(0.2, 0.35, 0.25, 0.9)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 11
+
+[node name="WardLabel" type="Label" parent="Hospital"]
+offset_left = 1820.0
+offset_top = 315.0
+offset_right = 1940.0
+offset_bottom = 339.0
+text = "病房"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.88, 0.9, 0.97, 1)
+theme_override_colors/font_outline_color = Color(0.25, 0.28, 0.4, 0.9)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 11
+
+[node name="Walls" type="StaticBody2D" parent="Hospital"]
+collision_layer = 3
+
+[node name="TopShape" type="CollisionShape2D" parent="Hospital/Walls"]
+position = Vector2(1780, 148)
+shape = SubResource("HospWallH440")
+
+[node name="TopVisual" type="Polygon2D" parent="Hospital/Walls"]
+color = Color(0.62, 0.63, 0.66, 1)
+position = Vector2(1780, 148)
+polygon = PackedVector2Array(-220, -8, 220, -8, 220, 8, -220, 8)
+
+[node name="BottomLeftShape" type="CollisionShape2D" parent="Hospital/Walls"]
+position = Vector2(1650, 452)
+shape = SubResource("HospSeg180")
+
+[node name="BottomLeftVisual" type="Polygon2D" parent="Hospital/Walls"]
+color = Color(0.62, 0.63, 0.66, 1)
+position = Vector2(1650, 452)
+polygon = PackedVector2Array(-90, -8, 90, -8, 90, 8, -90, 8)
+
+[node name="BottomRightShape" type="CollisionShape2D" parent="Hospital/Walls"]
+position = Vector2(1910, 452)
+shape = SubResource("HospSeg180")
+
+[node name="BottomRightVisual" type="Polygon2D" parent="Hospital/Walls"]
+color = Color(0.62, 0.63, 0.66, 1)
+position = Vector2(1910, 452)
+polygon = PackedVector2Array(-90, -8, 90, -8, 90, 8, -90, 8)
+
+[node name="LeftShape" type="CollisionShape2D" parent="Hospital/Walls"]
+position = Vector2(1568, 300)
+shape = SubResource("HospWallV320")
+
+[node name="LeftVisual" type="Polygon2D" parent="Hospital/Walls"]
+color = Color(0.62, 0.63, 0.66, 1)
+position = Vector2(1568, 300)
+polygon = PackedVector2Array(-8, -160, 8, -160, 8, 160, -8, 160)
+
+[node name="RightShape" type="CollisionShape2D" parent="Hospital/Walls"]
+position = Vector2(1992, 300)
+shape = SubResource("HospWallV320")
+
+[node name="RightVisual" type="Polygon2D" parent="Hospital/Walls"]
+color = Color(0.62, 0.63, 0.66, 1)
+position = Vector2(1992, 300)
+polygon = PackedVector2Array(-8, -160, 8, -160, 8, 160, -8, 160)
+
+[node name="InnerWestShape" type="CollisionShape2D" parent="Hospital/Walls"]
+position = Vector2(1600, 348)
+shape = SubResource("HospSeg80")
+
+[node name="InnerWestVisual" type="Polygon2D" parent="Hospital/Walls"]
+color = Color(0.55, 0.56, 0.59, 1)
+position = Vector2(1600, 348)
+polygon = PackedVector2Array(-40, -8, 40, -8, 40, 8, -40, 8)
+
+[node name="InnerMidShape" type="CollisionShape2D" parent="Hospital/Walls"]
+position = Vector2(1780, 348)
+shape = SubResource("HospSeg160")
+
+[node name="InnerMidVisual" type="Polygon2D" parent="Hospital/Walls"]
+color = Color(0.55, 0.56, 0.59, 1)
+position = Vector2(1780, 348)
+polygon = PackedVector2Array(-80, -8, 80, -8, 80, 8, -80, 8)
+
+[node name="InnerEastShape" type="CollisionShape2D" parent="Hospital/Walls"]
+position = Vector2(1960, 348)
+shape = SubResource("HospSeg80")
+
+[node name="InnerEastVisual" type="Polygon2D" parent="Hospital/Walls"]
+color = Color(0.55, 0.56, 0.59, 1)
+position = Vector2(1960, 348)
+polygon = PackedVector2Array(-40, -8, 40, -8, 40, 8, -40, 8)
+
+[node name="DividerShape" type="CollisionShape2D" parent="Hospital/Walls"]
+position = Vector2(1780, 248)
+shape = SubResource("HospInnerV184")
+
+[node name="DividerVisual" type="Polygon2D" parent="Hospital/Walls"]
+color = Color(0.55, 0.56, 0.59, 1)
+position = Vector2(1780, 248)
+polygon = PackedVector2Array(-8, -92, 8, -92, 8, 92, -8, 92)
+
+[node name="Reception" type="StaticBody2D" parent="Hospital"]
+collision_layer = 3
+
+[node name="Shape" type="CollisionShape2D" parent="Hospital/Reception"]
+position = Vector2(1660, 435)
+shape = SubResource("HospFront")
+
+[node name="Visual" type="Polygon2D" parent="Hospital/Reception"]
+color = Color(0.55, 0.45, 0.3, 1)
+position = Vector2(1660, 435)
+polygon = PackedVector2Array(-45, -10, 45, -10, 45, 10, -45, 10)
+
+[node name="Bench" type="StaticBody2D" parent="Hospital"]
+collision_layer = 3
+
+[node name="Shape" type="CollisionShape2D" parent="Hospital/Bench"]
+position = Vector2(1900, 435)
+shape = SubResource("HospBench")
+
+[node name="Visual" type="Polygon2D" parent="Hospital/Bench"]
+color = Color(0.4, 0.5, 0.55, 1)
+position = Vector2(1900, 435)
+polygon = PackedVector2Array(-40, -10, 40, -10, 40, 10, -40, 10)
+
+[node name="HospitalBeds" type="StaticBody2D" parent="Hospital"]
+collision_layer = 3
+
+[node name="Bed1Shape" type="CollisionShape2D" parent="Hospital/HospitalBeds"]
+position = Vector2(1850, 200)
+shape = SubResource("HospBed")
+
+[node name="Bed1Visual" type="Polygon2D" parent="Hospital/HospitalBeds"]
+color = Color(0.9, 0.91, 0.94, 1)
+position = Vector2(1850, 200)
+polygon = PackedVector2Array(-32, -18, 32, -18, 32, 18, -32, 18)
+
+[node name="Bed1Pillow" type="Polygon2D" parent="Hospital/HospitalBeds"]
+color = Color(0.97, 0.97, 0.99, 1)
+position = Vector2(1850, 200)
+polygon = PackedVector2Array(-30, -14, -12, -14, -12, 14, -30, 14)
+
+[node name="Bed1Blanket" type="Polygon2D" parent="Hospital/HospitalBeds"]
+color = Color(0.6, 0.7, 0.85, 1)
+position = Vector2(1850, 200)
+polygon = PackedVector2Array(-2, -16, 30, -16, 30, 16, -2, 16)
+
+[node name="Bed2Shape" type="CollisionShape2D" parent="Hospital/HospitalBeds"]
+position = Vector2(1850, 290)
+shape = SubResource("HospBed")
+
+[node name="Bed2Visual" type="Polygon2D" parent="Hospital/HospitalBeds"]
+color = Color(0.9, 0.91, 0.94, 1)
+position = Vector2(1850, 290)
+polygon = PackedVector2Array(-32, -18, 32, -18, 32, 18, -32, 18)
+
+[node name="Bed2Pillow" type="Polygon2D" parent="Hospital/HospitalBeds"]
+color = Color(0.97, 0.97, 0.99, 1)
+position = Vector2(1850, 290)
+polygon = PackedVector2Array(-30, -14, -12, -14, -12, 14, -30, 14)
+
+[node name="Bed2Blanket" type="Polygon2D" parent="Hospital/HospitalBeds"]
+color = Color(0.6, 0.7, 0.85, 1)
+position = Vector2(1850, 290)
+polygon = PackedVector2Array(-2, -16, 30, -16, 30, 16, -2, 16)
+
+[node name="ShelfM1" parent="Hospital" instance=ExtResource("30_shelf")]
+position = Vector2(1630, 190)
+display_name = "药房货架"
+starting_items = Array[ExtResource("31_iscript")]([ExtResource("47_bandage"), ExtResource("48_pain"), ExtResource("47_bandage"), ExtResource("71_notemil")])
+
+[node name="ShelfM2" parent="Hospital" instance=ExtResource("30_shelf")]
+position = Vector2(1630, 260)
+display_name = "药房货架"
+starting_items = Array[ExtResource("31_iscript")]([ExtResource("48_pain"), ExtResource("47_bandage"), ExtResource("48_pain")])
+
+[node name="MedCab" parent="Hospital" instance=ExtResource("45_medcab")]
+position = Vector2(1720, 190)
+
+[node name="Nightstand" parent="Hospital" instance=ExtResource("46_nightstand")]
+position = Vector2(1850, 245)
+
+[node name="B3Shape" type="CollisionShape2D" parent="Buildings"]
+position = Vector2(2130, 520)
+shape = SubResource("BuildingA")
+
+[node name="B3Visual" type="Polygon2D" parent="Buildings"]
+color = Color(0.3, 0.31, 0.33, 1)
+position = Vector2(2130, 520)
+polygon = PackedVector2Array(-110, -70, 110, -70, 110, 70, -110, 70)
+
+[node name="PoliceStation" type="Node2D" parent="."]
+
+[node name="Floor" type="Polygon2D" parent="PoliceStation"]
+color = Color(0.5, 0.52, 0.58, 1)
+polygon = PackedVector2Array(1180, 760, 1620, 760, 1620, 1040, 1180, 1040)
+
+[node name="ArmoryFloor" type="Polygon2D" parent="PoliceStation"]
+color = Color(0.42, 0.44, 0.48, 1)
+polygon = PackedVector2Array(1400, 760, 1620, 760, 1620, 912, 1400, 912)
+
+[node name="CellFloor" type="Polygon2D" parent="PoliceStation"]
+color = Color(0.44, 0.46, 0.5, 1)
+polygon = PackedVector2Array(1180, 760, 1400, 760, 1400, 912, 1180, 912)
+
+[node name="SignLabel" type="Label" parent="PoliceStation"]
+offset_left = 1280.0
+offset_top = 724.0
+offset_right = 1520.0
+offset_bottom = 750.0
+text = "市公安局"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.15, 0.25, 0.55, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 14
+
+[node name="LobbyLabel" type="Label" parent="PoliceStation"]
+offset_left = 1320.0
+offset_top = 940.0
+offset_right = 1480.0
+offset_bottom = 964.0
+text = "办公大厅"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.9, 0.92, 0.98, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.85)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 11
+
+[node name="CellLabel" type="Label" parent="PoliceStation"]
+offset_left = 1220.0
+offset_top = 880.0
+offset_right = 1340.0
+offset_bottom = 904.0
+text = "拘留区"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.85, 0.88, 0.95, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.85)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 11
+
+[node name="ArmoryLabel" type="Label" parent="PoliceStation"]
+offset_left = 1450.0
+offset_top = 880.0
+offset_right = 1570.0
+offset_bottom = 904.0
+text = "军械库"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 0.85, 0.6, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.85)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 11
+
+[node name="Walls" type="StaticBody2D" parent="PoliceStation"]
+collision_layer = 3
+
+[node name="TopShape" type="CollisionShape2D" parent="PoliceStation/Walls"]
+position = Vector2(1400, 768)
+shape = SubResource("HospWallH440")
+
+[node name="TopVisual" type="Polygon2D" parent="PoliceStation/Walls"]
+color = Color(0.3, 0.32, 0.36, 1)
+position = Vector2(1400, 768)
+polygon = PackedVector2Array(-220, -8, 220, -8, 220, 8, -220, 8)
+
+[node name="BottomLeftShape" type="CollisionShape2D" parent="PoliceStation/Walls"]
+position = Vector2(1270, 1040)
+shape = SubResource("HospSeg180")
+
+[node name="BottomLeftVisual" type="Polygon2D" parent="PoliceStation/Walls"]
+color = Color(0.3, 0.32, 0.36, 1)
+position = Vector2(1270, 1040)
+polygon = PackedVector2Array(-90, -8, 90, -8, 90, 8, -90, 8)
+
+[node name="BottomRightShape" type="CollisionShape2D" parent="PoliceStation/Walls"]
+position = Vector2(1530, 1040)
+shape = SubResource("HospSeg180")
+
+[node name="BottomRightVisual" type="Polygon2D" parent="PoliceStation/Walls"]
+color = Color(0.3, 0.32, 0.36, 1)
+position = Vector2(1530, 1040)
+polygon = PackedVector2Array(-90, -8, 90, -8, 90, 8, -90, 8)
+
+[node name="LeftShape" type="CollisionShape2D" parent="PoliceStation/Walls"]
+position = Vector2(1188, 900)
+shape = SubResource("PoliceWallV280")
+
+[node name="LeftVisual" type="Polygon2D" parent="PoliceStation/Walls"]
+color = Color(0.3, 0.32, 0.36, 1)
+position = Vector2(1188, 900)
+polygon = PackedVector2Array(-8, -140, 8, -140, 8, 140, -8, 140)
+
+[node name="RightShape" type="CollisionShape2D" parent="PoliceStation/Walls"]
+position = Vector2(1612, 900)
+shape = SubResource("PoliceWallV280")
+
+[node name="RightVisual" type="Polygon2D" parent="PoliceStation/Walls"]
+color = Color(0.3, 0.32, 0.36, 1)
+position = Vector2(1612, 900)
+polygon = PackedVector2Array(-8, -140, 8, -140, 8, 140, -8, 140)
+
+[node name="InnerWestShape" type="CollisionShape2D" parent="PoliceStation/Walls"]
+position = Vector2(1225, 920)
+shape = SubResource("PSeg90")
+
+[node name="InnerWestVisual" type="Polygon2D" parent="PoliceStation/Walls"]
+color = Color(0.27, 0.29, 0.33, 1)
+position = Vector2(1225, 920)
+polygon = PackedVector2Array(-45, -8, 45, -8, 45, 8, -45, 8)
+
+[node name="InnerMidShape" type="CollisionShape2D" parent="PoliceStation/Walls"]
+position = Vector2(1410, 920)
+shape = SubResource("HospSeg160")
+
+[node name="InnerMidVisual" type="Polygon2D" parent="PoliceStation/Walls"]
+color = Color(0.27, 0.29, 0.33, 1)
+position = Vector2(1410, 920)
+polygon = PackedVector2Array(-80, -8, 80, -8, 80, 8, -80, 8)
+
+[node name="InnerEastShape" type="CollisionShape2D" parent="PoliceStation/Walls"]
+position = Vector2(1585, 920)
+shape = SubResource("PSeg70")
+
+[node name="InnerEastVisual" type="Polygon2D" parent="PoliceStation/Walls"]
+color = Color(0.27, 0.29, 0.33, 1)
+position = Vector2(1585, 920)
+polygon = PackedVector2Array(-35, -8, 35, -8, 35, 8, -35, 8)
+
+[node name="DividerShape" type="CollisionShape2D" parent="PoliceStation/Walls"]
+position = Vector2(1400, 840)
+shape = SubResource("PInnerV144")
+
+[node name="DividerVisual" type="Polygon2D" parent="PoliceStation/Walls"]
+color = Color(0.27, 0.29, 0.33, 1)
+position = Vector2(1400, 840)
+polygon = PackedVector2Array(-8, -72, 8, -72, 8, 72, -8, 72)
+
+[node name="Reception" type="StaticBody2D" parent="PoliceStation"]
+collision_layer = 3
+
+[node name="Shape" type="CollisionShape2D" parent="PoliceStation/Reception"]
+position = Vector2(1250, 1005)
+shape = SubResource("HospFront")
+
+[node name="Visual" type="Polygon2D" parent="PoliceStation/Reception"]
+color = Color(0.35, 0.4, 0.45, 1)
+position = Vector2(1250, 1005)
+polygon = PackedVector2Array(-45, -10, 45, -10, 45, 10, -45, 10)
+
+[node name="CellBars1" type="Polygon2D" parent="PoliceStation"]
+color = Color(0.65, 0.68, 0.72, 1)
+position = Vector2(1250, 850)
+polygon = PackedVector2Array(-3, -50, 3, -50, 3, 50, -3, 50)
+
+[node name="CellBars2" type="Polygon2D" parent="PoliceStation"]
+color = Color(0.65, 0.68, 0.72, 1)
+position = Vector2(1330, 850)
+polygon = PackedVector2Array(-3, -50, 3, -50, 3, 50, -3, 50)
+
+[node name="GunLocker" parent="PoliceStation" instance=ExtResource("30_shelf")]
+position = Vector2(1510, 870)
+display_name = "枪柜"
+starting_items = Array[ExtResource("31_iscript")]([ExtResource("50_pistol"), ExtResource("51_rifle"), ExtResource("54_ammo9"), ExtResource("55_ammor"), ExtResource("52_grenade")])
+
+[node name="AmmoCrateA" parent="PoliceStation" instance=ExtResource("30_shelf")]
+position = Vector2(1450, 780)
+display_name = "弹药箱"
+starting_items = Array[ExtResource("31_iscript")]([ExtResource("54_ammo9")])
+
+[node name="AmmoCrateB" parent="PoliceStation" instance=ExtResource("30_shelf")]
+position = Vector2(1560, 780)
+display_name = "弹药箱"
+starting_items = Array[ExtResource("31_iscript")]([ExtResource("55_ammor"), ExtResource("54_ammo9")])
+
+[node name="EvidenceDesk" parent="PoliceStation" instance=ExtResource("30_shelf")]
+position = Vector2(1290, 810)
+display_name = "证物桌"
+starting_items = Array[ExtResource("31_iscript")]([ExtResource("53_baton"), ExtResource("47_bandage")])
+
+[node name="OfficeDesk" parent="PoliceStation" instance=ExtResource("30_shelf")]
+position = Vector2(1550, 980)
+display_name = "办公桌"
+starting_items = Array[ExtResource("31_iscript")]([ExtResource("56_vest"), ExtResource("54_ammo9")])
+
+[node name="Market" type="Node2D" parent="."]
+
+[node name="Floor" type="Polygon2D" parent="Market"]
+color = Color(0.55, 0.56, 0.58, 1)
+polygon = PackedVector2Array(1660, 820, 2140, 820, 2140, 1180, 1660, 1180)
+
+[node name="StorageFloor" type="Polygon2D" parent="Market"]
+color = Color(0.45, 0.4, 0.33, 1)
+polygon = PackedVector2Array(1660, 820, 1900, 820, 1900, 968, 1660, 968)
+
+[node name="ColdFloor" type="Polygon2D" parent="Market"]
+color = Color(0.5, 0.6, 0.68, 1)
+polygon = PackedVector2Array(1900, 820, 2140, 820, 2140, 968, 1900, 968)
+
+[node name="SignLabel" type="Label" parent="Market"]
+offset_left = 1780.0
+offset_top = 780.0
+offset_right = 2020.0
+offset_bottom = 806.0
+text = "惠民超市"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 0.92, 0.6, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.9)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 14
+
+[node name="StorageLabel" type="Label" parent="Market"]
+offset_left = 1690.0
+offset_top = 845.0
+offset_right = 1810.0
+offset_bottom = 869.0
+text = "仓储区"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.9, 0.88, 0.8, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.85)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 11
+
+[node name="ColdLabel" type="Label" parent="Market"]
+offset_left = 1950.0
+offset_top = 925.0
+offset_right = 2070.0
+offset_bottom = 949.0
+text = "冷藏区"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.75, 0.9, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.85)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 11
+
+[node name="Walls" type="StaticBody2D" parent="Market"]
+collision_layer = 3
+
+[node name="TopShape" type="CollisionShape2D" parent="Market/Walls"]
+position = Vector2(1900, 828)
+shape = SubResource("MarketWallH")
+
+[node name="TopVisual" type="Polygon2D" parent="Market/Walls"]
+color = Color(0.35, 0.37, 0.4, 1)
+position = Vector2(1900, 828)
+polygon = PackedVector2Array(-240, -8, 240, -8, 240, 8, -240, 8)
+
+[node name="BottomLeftShape" type="CollisionShape2D" parent="Market/Walls"]
+position = Vector2(1760, 1172)
+shape = SubResource("MarketSeg200")
+
+[node name="BottomLeftVisual" type="Polygon2D" parent="Market/Walls"]
+color = Color(0.35, 0.37, 0.4, 1)
+position = Vector2(1760, 1172)
+polygon = PackedVector2Array(-100, -8, 100, -8, 100, 8, -100, 8)
+
+[node name="BottomRightShape" type="CollisionShape2D" parent="Market/Walls"]
+position = Vector2(2040, 1172)
+shape = SubResource("MarketSeg200")
+
+[node name="BottomRightVisual" type="Polygon2D" parent="Market/Walls"]
+color = Color(0.35, 0.37, 0.4, 1)
+position = Vector2(2040, 1172)
+polygon = PackedVector2Array(-100, -8, 100, -8, 100, 8, -100, 8)
+
+[node name="LeftShape" type="CollisionShape2D" parent="Market/Walls"]
+position = Vector2(1668, 1000)
+shape = SubResource("MarketWallV")
+
+[node name="LeftVisual" type="Polygon2D" parent="Market/Walls"]
+color = Color(0.35, 0.37, 0.4, 1)
+position = Vector2(1668, 1000)
+polygon = PackedVector2Array(-8, -180, 8, -180, 8, 180, -8, 180)
+
+[node name="RightShape" type="CollisionShape2D" parent="Market/Walls"]
+position = Vector2(2132, 1000)
+shape = SubResource("MarketWallV")
+
+[node name="RightVisual" type="Polygon2D" parent="Market/Walls"]
+color = Color(0.35, 0.37, 0.4, 1)
+position = Vector2(2132, 1000)
+polygon = PackedVector2Array(-8, -180, 8, -180, 8, 180, -8, 180)
+
+[node name="InnerWestShape" type="CollisionShape2D" parent="Market/Walls"]
+position = Vector2(1830, 960)
+shape = SubResource("MarketInner340")
+
+[node name="InnerWestVisual" type="Polygon2D" parent="Market/Walls"]
+color = Color(0.32, 0.34, 0.37, 1)
+position = Vector2(1830, 960)
+polygon = PackedVector2Array(-170, -8, 170, -8, 170, 8, -170, 8)
+
+[node name="InnerEastShape" type="CollisionShape2D" parent="Market/Walls"]
+position = Vector2(2100, 960)
+shape = SubResource("MarketInner80")
+
+[node name="InnerEastVisual" type="Polygon2D" parent="Market/Walls"]
+color = Color(0.32, 0.34, 0.37, 1)
+position = Vector2(2100, 960)
+polygon = PackedVector2Array(-40, -8, 40, -8, 40, 8, -40, 8)
+
+[node name="Checkout" type="StaticBody2D" parent="Market"]
+collision_layer = 3
+
+[node name="Shape" type="CollisionShape2D" parent="Market/Checkout"]
+position = Vector2(1790, 1145)
+shape = SubResource("MarketCheckout")
+
+[node name="Visual" type="Polygon2D" parent="Market/Checkout"]
+color = Color(0.55, 0.42, 0.22, 1)
+position = Vector2(1790, 1145)
+polygon = PackedVector2Array(-50, -12, 50, -12, 50, 12, -50, 12)
+
+[node name="CheckoutLabel" type="Label" parent="Market"]
+offset_left = 1750.0
+offset_top = 1108.0
+offset_right = 1830.0
+offset_bottom = 1130.0
+text = "收银台"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.95, 0.85, 0.6, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.85)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 11
+
+[node name="ShelfA1" parent="Market" instance=ExtResource("30_shelf")]
+position = Vector2(1750, 1030)
+starting_items = Array[ExtResource("31_iscript")]([ExtResource("32_canned"), ExtResource("33_water"), ExtResource("34_hat"), ExtResource("35_bottle"), ExtResource("70_notehosp")])
+
+[node name="ShelfA2" parent="Market" instance=ExtResource("30_shelf")]
+position = Vector2(2040, 1030)
+starting_items = Array[ExtResource("31_iscript")]([ExtResource("32_canned"), ExtResource("33_water"), ExtResource("36_jacket"), ExtResource("37_fruit"), ExtResource("64_cloth")])
+
+[node name="ShelfB1" parent="Market" instance=ExtResource("30_shelf")]
+position = Vector2(1750, 1100)
+starting_items = Array[ExtResource("31_iscript")]([ExtResource("38_rice"), ExtResource("39_flour"), ExtResource("32_canned")])
+
+[node name="ShelfB2" parent="Market" instance=ExtResource("30_shelf")]
+position = Vector2(2040, 1100)
+starting_items = Array[ExtResource("31_iscript")]([ExtResource("40_backpack"), ExtResource("35_bottle"), ExtResource("32_canned")])
+
+[node name="ShelfC1" parent="Market" instance=ExtResource("30_shelf")]
+position = Vector2(1960, 900)
+starting_items = Array[ExtResource("31_iscript")]([ExtResource("42_milk"), ExtResource("43_meat"), ExtResource("44_dumpling")])
+
+[node name="ShelfC2" parent="Market" instance=ExtResource("30_shelf")]
+position = Vector2(2070, 900)
+starting_items = Array[ExtResource("31_iscript")]([ExtResource("41_egg"), ExtResource("42_milk"), ExtResource("33_water")])
+
+[node name="HardwareStore" type="Node2D" parent="."]
+
+[node name="Floor" type="Polygon2D" parent="HardwareStore"]
+color = Color(0.5, 0.44, 0.36, 1)
+polygon = PackedVector2Array(1940, 1200, 2380, 1200, 2380, 1480, 1940, 1480)
+
+[node name="StorageFloor" type="Polygon2D" parent="HardwareStore"]
+color = Color(0.4, 0.34, 0.27, 1)
+polygon = PackedVector2Array(1940, 1200, 2080, 1200, 2080, 1300, 1940, 1300)
+
+[node name="SignLabel" type="Label" parent="HardwareStore"]
+offset_left = 2040.0
+offset_top = 1164.0
+offset_right = 2280.0
+offset_bottom = 1190.0
+text = "废铁五金店"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_outline_color = Color(0.25, 0.15, 0.05, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 14
+
+[node name="StorageLabel" type="Label" parent="HardwareStore"]
+offset_left = 1970.0
+offset_top = 1225.0
+offset_right = 2060.0
+offset_bottom = 1249.0
+text = "仓库角"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.85, 0.78, 0.65, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.85)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 11
+
+[node name="SalesLabel" type="Label" parent="HardwareStore"]
+offset_left = 2130.0
+offset_top = 1448.0
+offset_right = 2230.0
+offset_bottom = 1472.0
+text = "销售区"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.9, 0.85, 0.75, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.85)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 11
+
+[node name="Walls" type="StaticBody2D" parent="HardwareStore"]
+collision_layer = 3
+
+[node name="TopShape" type="CollisionShape2D" parent="HardwareStore/Walls"]
+position = Vector2(2160, 1208)
+shape = SubResource("HospWallH440")
+
+[node name="TopVisual" type="Polygon2D" parent="HardwareStore/Walls"]
+color = Color(0.45, 0.36, 0.28, 1)
+position = Vector2(2160, 1208)
+polygon = PackedVector2Array(-220, -8, 220, -8, 220, 8, -220, 8)
+
+[node name="BottomLeftShape" type="CollisionShape2D" parent="HardwareStore/Walls"]
+position = Vector2(2040, 1472)
+shape = SubResource("MarketSeg200")
+
+[node name="BottomLeftVisual" type="Polygon2D" parent="HardwareStore/Walls"]
+color = Color(0.45, 0.36, 0.28, 1)
+position = Vector2(2040, 1472)
+polygon = PackedVector2Array(-100, -8, 100, -8, 100, 8, -100, 8)
+
+[node name="BottomRightShape" type="CollisionShape2D" parent="HardwareStore/Walls"]
+position = Vector2(2280, 1472)
+shape = SubResource("MarketSeg200")
+
+[node name="BottomRightVisual" type="Polygon2D" parent="HardwareStore/Walls"]
+color = Color(0.45, 0.36, 0.28, 1)
+position = Vector2(2280, 1472)
+polygon = PackedVector2Array(-100, -8, 100, -8, 100, 8, -100, 8)
+
+[node name="LeftShape" type="CollisionShape2D" parent="HardwareStore/Walls"]
+position = Vector2(1948, 1340)
+shape = SubResource("PoliceWallV280")
+
+[node name="LeftVisual" type="Polygon2D" parent="HardwareStore/Walls"]
+color = Color(0.45, 0.36, 0.28, 1)
+position = Vector2(1948, 1340)
+polygon = PackedVector2Array(-8, -140, 8, -140, 8, 140, -8, 140)
+
+[node name="RightShape" type="CollisionShape2D" parent="HardwareStore/Walls"]
+position = Vector2(2372, 1340)
+shape = SubResource("PoliceWallV280")
+
+[node name="RightVisual" type="Polygon2D" parent="HardwareStore/Walls"]
+color = Color(0.45, 0.36, 0.28, 1)
+position = Vector2(2372, 1340)
+polygon = PackedVector2Array(-8, -140, 8, -140, 8, 140, -8, 140)
+
+[node name="InnerShape" type="CollisionShape2D" parent="HardwareStore/Walls"]
+position = Vector2(2014, 1300)
+shape = SubResource("HWInner132")
+
+[node name="InnerVisual" type="Polygon2D" parent="HardwareStore/Walls"]
+color = Color(0.4, 0.32, 0.25, 1)
+position = Vector2(2014, 1300)
+polygon = PackedVector2Array(-66, -8, 66, -8, 66, 8, -66, 8)
+
+[node name="ShelfR1A" parent="HardwareStore" instance=ExtResource("30_shelf")]
+position = Vector2(2090, 1280)
+display_name = "五金货架"
+starting_items = Array[ExtResource("31_iscript")]([ExtResource("59_scrap"), ExtResource("60_mpipe"), ExtResource("62_nails")])
+
+[node name="ShelfR1B" parent="HardwareStore" instance=ExtResource("30_shelf")]
+position = Vector2(2240, 1280)
+display_name = "五金货架"
+starting_items = Array[ExtResource("31_iscript")]([ExtResource("61_board"), ExtResource("62_nails"), ExtResource("63_tape")])
+
+[node name="ShelfR2A" parent="HardwareStore" instance=ExtResource("30_shelf")]
+position = Vector2(2090, 1350)
+display_name = "五金货架"
+starting_items = Array[ExtResource("31_iscript")]([ExtResource("59_scrap"), ExtResource("65_rope"), ExtResource("64_cloth")])
+
+[node name="ShelfR2B" parent="HardwareStore" instance=ExtResource("30_shelf")]
+position = Vector2(2240, 1350)
+display_name = "五金货架"
+starting_items = Array[ExtResource("31_iscript")]([ExtResource("60_mpipe"), ExtResource("61_board"), ExtResource("63_tape")])
+
+[node name="ShelfR3A" parent="HardwareStore" instance=ExtResource("30_shelf")]
+position = Vector2(2090, 1420)
+display_name = "五金货架"
+starting_items = Array[ExtResource("31_iscript")]([ExtResource("62_nails"), ExtResource("64_cloth"), ExtResource("59_scrap")])
+
+[node name="ShelfR3B" parent="HardwareStore" instance=ExtResource("30_shelf")]
+position = Vector2(2240, 1420)
+display_name = "五金货架"
+starting_items = Array[ExtResource("31_iscript")]([ExtResource("65_rope"), ExtResource("61_board"), ExtResource("59_scrap")])
+
+[node name="ToolCounter" parent="HardwareStore" instance=ExtResource("30_shelf")]
+position = Vector2(2010, 1250)
+display_name = "工具柜台"
+starting_items = Array[ExtResource("31_iscript")]([ExtResource("66_shovel"), ExtResource("59_scrap"), ExtResource("63_tape")])
+
+[node name="Player" parent="." instance=ExtResource("3_player")]
+position = Vector2(250, 1380)
+
+[node name="SpawnPoints" type="Node2D" parent="."]
+
+[node name="Suburb1" type="Marker2D" parent="SpawnPoints"]
+position = Vector2(900, 400)
+script = ExtResource("14_sp")
+zombie_count = 1
+variants = [null, ExtResource("19_runner")]
+variant_weights = [80.0, 20.0]
+pickup_rolls = 3
+pickup_table = ExtResource("15_poor")
+
+[node name="Suburb2" type="Marker2D" parent="SpawnPoints"]
+position = Vector2(800, 900)
+script = ExtResource("14_sp")
+zombie_count = 1
+variants = [null, ExtResource("19_runner")]
+variant_weights = [80.0, 20.0]
+pickup_rolls = 3
+pickup_table = ExtResource("15_poor")
+
+[node name="Suburb3" type="Marker2D" parent="SpawnPoints"]
+position = Vector2(1100, 1350)
+script = ExtResource("14_sp")
+zombie_count = 0
+pickup_rolls = 2
+pickup_table = ExtResource("15_poor")
+
+[node name="City1" type="Marker2D" parent="SpawnPoints"]
+position = Vector2(920, 1200)
+script = ExtResource("14_sp")
+zombie_count = 2
+variants = [null, ExtResource("19_runner"), ExtResource("20_tank")]
+variant_weights = [50.0, 30.0, 20.0]
+pickup_rolls = 3
+pickup_table = ExtResource("16_rich")
+
+[node name="City2" type="Marker2D" parent="SpawnPoints"]
+position = Vector2(1950, 700)
+script = ExtResource("14_sp")
+zombie_count = 2
+variants = [null, ExtResource("19_runner"), ExtResource("20_tank")]
+variant_weights = [50.0, 30.0, 20.0]
+pickup_rolls = 3
+pickup_table = ExtResource("16_rich")
+
+[node name="City3" type="Marker2D" parent="SpawnPoints"]
+position = Vector2(1700, 1150)
+script = ExtResource("14_sp")
+zombie_count = 2
+variants = [null, ExtResource("19_runner"), ExtResource("20_tank")]
+variant_weights = [50.0, 30.0, 20.0]
+pickup_rolls = 2
+pickup_table = ExtResource("16_rich")
+
+[node name="MarketGuard" type="Marker2D" parent="SpawnPoints"]
+position = Vector2(1900, 1060)
+script = ExtResource("14_sp")
+zombie_count = 3
+variants = [null, ExtResource("20_tank")]
+variant_weights = [65.0, 35.0]
+spawn_radius = 90.0
+
+[node name="HospitalGuard" type="Marker2D" parent="SpawnPoints"]
+position = Vector2(1780, 390)
+script = ExtResource("14_sp")
+zombie_count = 2
+spawn_radius = 55.0
+
+[node name="HospitalGuardTank" type="Marker2D" parent="SpawnPoints"]
+position = Vector2(1670, 250)
+script = ExtResource("14_sp")
+zombie_count = 1
+variants = [ExtResource("20_tank")]
+spawn_radius = 40.0
+
+[node name="PoliceGuard" type="Marker2D" parent="SpawnPoints"]
+position = Vector2(1400, 975)
+script = ExtResource("14_sp")
+zombie_count = 2
+spawn_radius = 40.0
+
+[node name="PoliceGuardTank" type="Marker2D" parent="SpawnPoints"]
+position = Vector2(1510, 830)
+script = ExtResource("14_sp")
+zombie_count = 1
+variants = [ExtResource("20_tank")]
+spawn_radius = 30.0
+
+[node name="HardwareGuard" type="Marker2D" parent="SpawnPoints"]
+position = Vector2(2160, 1330)
+script = ExtResource("14_sp")
+zombie_count = 2
+spawn_radius = 60.0
+
+[node name="HardwareGuardTank" type="Marker2D" parent="SpawnPoints"]
+position = Vector2(2300, 1240)
+script = ExtResource("14_sp")
+zombie_count = 1
+variants = [ExtResource("20_tank")]
+spawn_radius = 30.0
+
+[node name="HardwareBox" type="Marker2D" parent="SpawnPoints"]
+position = Vector2(2010, 1260)
+script = ExtResource("14_sp")
+box_count = 1
+box_rolls = 2
+box_table = ExtResource("58_hwtable")
+spawn_radius = 20.0
+
+[node name="MilGuards" type="Marker2D" parent="SpawnPoints"]
+position = Vector2(1280, 430)
+script = ExtResource("14_sp")
+zombie_count = 4
+spawn_radius = 80.0
+
+[node name="MilTankPad" type="Marker2D" parent="SpawnPoints"]
+position = Vector2(1400, 210)
+script = ExtResource("14_sp")
+zombie_count = 1
+variants = [ExtResource("20_tank")]
+spawn_radius = 30.0
+
+[node name="MilTankBarrack" type="Marker2D" parent="SpawnPoints"]
+position = Vector2(1150, 340)
+script = ExtResource("14_sp")
+zombie_count = 1
+variants = [ExtResource("20_tank")]
+spawn_radius = 30.0
+
+[node name="Box1" type="Marker2D" parent="SpawnPoints"]
+position = Vector2(1400, 470)
+script = ExtResource("14_sp")
+box_count = 1
+box_rolls = 2
+box_table = ExtResource("17_box")
+spawn_radius = 24.0
+
+[node name="Box2" type="Marker2D" parent="SpawnPoints"]
+position = Vector2(1730, 890)
+script = ExtResource("14_sp")
+box_count = 1
+box_rolls = 3
+box_table = ExtResource("17_box")
+spawn_radius = 24.0
+
+[node name="HUD" parent="." instance=ExtResource("6_hud")]
+
+[node name="DayNightModulate" type="CanvasModulate" parent="."]
+color = Color(1, 1, 1, 1)
+
+[node name="DayNight" type="Node" parent="."]
+script = ExtResource("21_dn")
+
+[node name="FogOfWar" type="Node2D" parent="."]
+script = ExtResource("69_fog")

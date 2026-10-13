@@ -1,0 +1,29 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemies/zombie.gd" id="1_zombie"]
+
+[sub_resource type="CircleShape2D" id="ZombieShape"]
+radius = 12.0
+
+[node name="Zombie" type="CharacterBody2D" groups=["zombies"]]
+motion_mode = 1
+script = ExtResource("1_zombie")
+
+[node name="Shape" type="CollisionShape2D" parent="."]
+shape = SubResource("ZombieShape")
+
+[node name="Visual" type="Polygon2D" parent="."]
+color = Color(0.42, 0.58, 0.32, 1)
+polygon = PackedVector2Array(-12, -12, 12, -12, 12, 12, -12, 12)
+
+[node name="NameLabel" type="Label" parent="."]
+offset_left = -50.0
+offset_top = -40.0
+offset_right = 50.0
+offset_bottom = -26.0
+text = "普通丧尸"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.85)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 11

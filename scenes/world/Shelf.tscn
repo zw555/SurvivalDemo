@@ -1,0 +1,45 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/storage_box.gd" id="1_box"]
+
+[sub_resource type="RectangleShape2D" id="ShelfInteract"]
+size = Vector2(140, 70)
+
+[sub_resource type="RectangleShape2D" id="ShelfBody"]
+size = Vector2(100, 24)
+
+[node name="Shelf" type="Area2D" groups=["containers"]]
+script = ExtResource("1_box")
+display_name = "货架"
+open_prompt = "搜刮货架"
+close_prompt = "关闭货架"
+capacity = 8
+
+[node name="Shape" type="CollisionShape2D" parent="."]
+shape = SubResource("ShelfInteract")
+
+[node name="Body" type="StaticBody2D" parent="."]
+collision_layer = 3
+
+[node name="BodyShape" type="CollisionShape2D" parent="Body"]
+shape = SubResource("ShelfBody")
+
+[node name="Visual" type="Polygon2D" parent="."]
+color = Color(0.5, 0.52, 0.55, 1)
+polygon = PackedVector2Array(-50, -12, 50, -12, 50, 12, -50, 12)
+
+[node name="FrontLine" type="Polygon2D" parent="."]
+color = Color(0.3, 0.32, 0.35, 1)
+polygon = PackedVector2Array(-50, 6, 50, 6, 50, 12, -50, 12)
+
+[node name="Label" type="Label" parent="."]
+offset_left = -30.0
+offset_top = -34.0
+offset_right = 30.0
+offset_bottom = -18.0
+text = "货架"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.85, 0.9, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.85)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 11

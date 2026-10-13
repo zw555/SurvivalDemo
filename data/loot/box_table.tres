@@ -1,0 +1,72 @@
+[gd_resource type="Resource" script_class="LootTable" load_steps=23 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/loot_table.gd" id="1_table"]
+[ext_resource type="Script" path="res://scripts/data/loot_entry.gd" id="2_entry"]
+[ext_resource type="Resource" path="res://data/items/food_canned.tres" id="3_food"]
+[ext_resource type="Resource" path="res://data/items/water_bottle.tres" id="4_water"]
+[ext_resource type="Resource" path="res://data/items/weapon_pipe.tres" id="5_pipe"]
+[ext_resource type="Resource" path="res://data/items/weapon_machete.tres" id="6_machete"]
+[ext_resource type="Resource" path="res://data/items/backpack_small.tres" id="7_backpack"]
+[ext_resource type="Resource" path="res://data/items/cloth_hat.tres" id="8_hat"]
+[ext_resource type="Resource" path="res://data/items/cloth_jacket.tres" id="9_jacket"]
+[ext_resource type="Resource" path="res://data/items/weapon_wood_club.tres" id="10_club"]
+[ext_resource type="Resource" path="res://data/items/weapon_wood_spear.tres" id="11_spear"]
+[ext_resource type="Resource" path="res://data/items/weapon_fruit_knife.tres" id="12_fruit"]
+[ext_resource type="Resource" path="res://data/items/bottle_plastic.tres" id="13_bottle"]
+
+[sub_resource type="Resource" id="LootEntry_1"]
+script = ExtResource("2_entry")
+item = ExtResource("3_food")
+weight = 25.0
+
+[sub_resource type="Resource" id="LootEntry_2"]
+script = ExtResource("2_entry")
+item = ExtResource("4_water")
+weight = 25.0
+
+[sub_resource type="Resource" id="LootEntry_3"]
+script = ExtResource("2_entry")
+item = ExtResource("5_pipe")
+weight = 12.0
+
+[sub_resource type="Resource" id="LootEntry_4"]
+script = ExtResource("2_entry")
+item = ExtResource("6_machete")
+weight = 12.0
+
+[sub_resource type="Resource" id="LootEntry_5"]
+script = ExtResource("2_entry")
+item = ExtResource("7_backpack")
+weight = 8.0
+
+[sub_resource type="Resource" id="LootEntry_6"]
+script = ExtResource("2_entry")
+item = ExtResource("8_hat")
+weight = 5.0
+
+[sub_resource type="Resource" id="LootEntry_7"]
+script = ExtResource("2_entry")
+item = ExtResource("9_jacket")
+weight = 6.0
+
+[sub_resource type="Resource" id="LootEntry_8"]
+script = ExtResource("2_entry")
+item = ExtResource("10_club")
+weight = 8.0
+
+[sub_resource type="Resource" id="LootEntry_9"]
+script = ExtResource("2_entry")
+item = ExtResource("11_spear")
+weight = 6.0
+
+[sub_resource type="Resource" id="LootEntry_10"]
+script = ExtResource("2_entry")
+item = ExtResource("12_fruit")
+weight = 6.0
+[sub_resource type="Resource" id="LootEntry_11"]
+script = ExtResource("2_entry")
+item = ExtResource("13_bottle")
+weight = 6.0
+[resource]
+script = ExtResource("1_table")
+entries = Array[ExtResource("2_entry")]([SubResource("LootEntry_1"), SubResource("LootEntry_2"), SubResource("LootEntry_3"), SubResource("LootEntry_4"), SubResource("LootEntry_5"), SubResource("LootEntry_6"), SubResource("LootEntry_7"), SubResource("LootEntry_8"), SubResource("LootEntry_9"), SubResource("LootEntry_10"), SubResource("LootEntry_11")])

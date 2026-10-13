@@ -1,0 +1,53 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/storage_box.gd" id="1_box"]
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="2_item"]
+[ext_resource type="Resource" path="res://data/items/med_firstaid.tres" id="3_firstaid"]
+[ext_resource type="Resource" path="res://data/items/med_painkiller.tres" id="4_pain"]
+
+[sub_resource type="RectangleShape2D" id="CabInteract"]
+size = Vector2(120, 90)
+
+[sub_resource type="RectangleShape2D" id="CabBody"]
+size = Vector2(60, 40)
+
+[node name="MedCabinet" type="Area2D" groups=["containers"]]
+script = ExtResource("1_box")
+display_name = "急救柜"
+open_prompt = "打开急救柜"
+close_prompt = "关闭急救柜"
+capacity = 6
+starting_items = Array[ExtResource("2_item")]([ExtResource("3_firstaid"), ExtResource("4_pain")])
+
+[node name="Shape" type="CollisionShape2D" parent="."]
+shape = SubResource("CabInteract")
+
+[node name="Body" type="StaticBody2D" parent="."]
+collision_layer = 3
+
+[node name="BodyShape" type="CollisionShape2D" parent="Body"]
+shape = SubResource("CabBody")
+
+[node name="Visual" type="Polygon2D" parent="."]
+color = Color(0.92, 0.93, 0.95, 1)
+polygon = PackedVector2Array(-30, -20, 30, -20, 30, 20, -30, 20)
+
+[node name="CrossV" type="Polygon2D" parent="."]
+color = Color(0.85, 0.25, 0.25, 1)
+polygon = PackedVector2Array(-4, -12, 4, -12, 4, 12, -4, 12)
+
+[node name="CrossH" type="Polygon2D" parent="."]
+color = Color(0.85, 0.25, 0.25, 1)
+polygon = PackedVector2Array(-12, -4, 12, -4, 12, 4, -12, 4)
+
+[node name="Label" type="Label" parent="."]
+offset_left = -30.0
+offset_top = -38.0
+offset_right = 30.0
+offset_bottom = -22.0
+text = "急救柜"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 0.85, 0.85, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.85)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 11

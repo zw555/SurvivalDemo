@@ -1,0 +1,25 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/door.gd" id="1_door"]
+
+[sub_resource type="RectangleShape2D" id="DoorInteract"]
+size = Vector2(96, 48)
+
+[sub_resource type="RectangleShape2D" id="DoorBody"]
+size = Vector2(60, 14)
+
+[node name="Door" type="Area2D"]
+script = ExtResource("1_door")
+
+[node name="Interaction" type="CollisionShape2D" parent="."]
+shape = SubResource("DoorInteract")
+
+[node name="GateBody" type="StaticBody2D" parent="."]
+collision_layer = 3
+
+[node name="GateShape" type="CollisionShape2D" parent="GateBody"]
+shape = SubResource("DoorBody")
+
+[node name="Visual" type="Polygon2D" parent="."]
+color = Color(0.5, 0.33, 0.17, 1)
+polygon = PackedVector2Array(-30, -7, 30, -7, 30, 7, -30, 7)

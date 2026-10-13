@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/recipe_data.gd" id="1_recipe"]
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="31_iscript"]
+[ext_resource type="Resource" path="res://data/items/armor_scrap.tres" id="2_prod"]
+[ext_resource type="Resource" path="res://data/items/mat_scrap_metal.tres" id="m0"]
+[ext_resource type="Resource" path="res://data/items/mat_cloth.tres" id="m1"]
+[ext_resource type="Resource" path="res://data/items/mat_duct_tape.tres" id="m2"]
+
+[resource]
+script = ExtResource("1_recipe")
+id = "recipe_scrap_armor"
+product = ExtResource("2_prod")
+product_count = 1
+ingredients = Array[ExtResource("31_iscript")]([ExtResource("m0"), ExtResource("m1"), ExtResource("m2")])
+amounts = Array[int]([2, 2, 1])
