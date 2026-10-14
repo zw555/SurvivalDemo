@@ -1,0 +1,27 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/window.gd" id="1_win"]
+
+[sub_resource type="RectangleShape2D" id="WinShape"]
+size = Vector2(16, 100)
+
+[node name="Window" type="StaticBody2D"]
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("1_win")
+
+[node name="Shape" type="CollisionShape2D" parent="."]
+position = Vector2(0, 0)
+shape = SubResource("WinShape")
+
+[node name="Glass" type="Polygon2D" parent="."]
+color = Color(0.6, 0.8, 0.9, 0.45)
+polygon = PackedVector2Array(-6, -50, 6, -50, 6, 50, -6, 50)
+
+[node name="FrameTop" type="Polygon2D" parent="."]
+color = Color(0.45, 0.35, 0.25, 1)
+polygon = PackedVector2Array(-8, -54, 8, -54, 8, -48, -8, -48)
+
+[node name="FrameBottom" type="Polygon2D" parent="."]
+color = Color(0.45, 0.35, 0.25, 1)
+polygon = PackedVector2Array(-8, 48, 8, 48, 8, 54, -8, 54)

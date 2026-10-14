@@ -1,20 +1,31 @@
 class_name FogOfWar
 extends Node2D
 ## 地图探索迷雾：网格化的"未探索 / 已探索 / 当前可见"三层状态。
-## 玩家周围一定半径逐步揭开，已探索区域永久保留（半透明遮罩）；
-## 未探索区域近乎全黑，连同其中的僵尸、物资一起隐藏。
-## 绘制在世界之上（z_index 高）、HUD 之下（HUD 是 CanvasLayer，天然在其上）。
+## 玩家视野 = 近距离全向 + 中远距离方向视野锥，射线遮挡截断（隔墙看不见）；
+## 已探索区域永久保留（半透明遮罩），未探索区域近乎全黑，连同其中的僵尸、
+## 物资一起隐藏。绘制在世界之上（z_index 高）、HUD 之下（HUD 是 CanvasLayer）。
 
 const STATE_UNKNOWN := 0
 const STATE_EXPLORED := 1
 const STATE_VISIBLE := 2
 
+## —— 玩家视野参数（集中配置） ——
+## 近距离全向视野半径：身边一圈 360° 可见（同样遵守墙体遮挡）。
+@export var omni_radius := 100.0
+## 中远距离视野锥最大距离。
+@export var cone_radius := 320.0
+## 视野锥半角（度）：总夹角 = 2 × 半角，默认 120°。
+@export var cone_half_angle_deg := 60.0
+## 视线检测碰撞层：与丧尸视线一致的"视线遮挡层"（墙/家具/关着的门）。
+const SIGHT_MASK := 2
+
 ## 迷雾刷新间隔（秒）：不用每帧重算，0.15s 足够平滑。
 const TICK_INTERVAL := 0.15
 
 @export var cell_size := 64.0
-@export var visible_radius := 280.0
 @export var map_size := Vector2(2400, 1600)
+## 测试/脚本用视野方向覆盖：非 ZERO 时替代鼠标方向（headless 无鼠标）。
+var aim_override := Vector2.ZERO
 
 var _cols := 0
 var _rows := 0
@@ -22,6 +33,7 @@ var _cells := PackedByteArray()
 var _dirty := true
 var _accum := 0.0
 var _player: Node2D
+var _last_aim := Vector2.RIGHT  ## 上一有效视野方向（鼠标无效时保持）
 
 
 func _ready() -> void:
@@ -48,15 +60,63 @@ func _physics_process(delta: float) -> void:
 		reveal_now()
 
 
-## 当前可见 → 已探索（保留地图），再揭开玩家周围一圈为当前可见。
+## 当前可见 → 已探索（保留地图），再按视野规则揭开玩家周围：
+## 近距离全向 + 中远距离视野锥，每个候选格子做射线遮挡检查。
 func reveal_now() -> void:
 	if _player == null:
 		return
 	for i in _cells.size():
 		if _cells[i] == STATE_VISIBLE:
 			_cells[i] = STATE_EXPLORED
-	_reveal_around(_player.global_position, visible_radius, STATE_VISIBLE)
+	var ppos := _player.global_position
+	var aim := _aim_dir(ppos)
+	var cos_half := cos(deg_to_rad(cone_half_angle_deg))
+	var cx := int(ppos.x / cell_size)
+	var cy := int(ppos.y / cell_size)
+	var span := int(ceil(cone_radius / cell_size)) + 1
+	for gy in range(maxi(0, cy - span), mini(_rows, cy + span + 1)):
+		for gx in range(maxi(0, cx - span), mini(_cols, cx + span + 1)):
+			var center := Vector2((gx + 0.5) * cell_size, (gy + 0.5) * cell_size)
+			if not _in_view(center, ppos, aim, cos_half):
+				continue
+			if not _line_clear(ppos, center):
+				continue
+			var idx := gy * _cols + gx
+			if _cells[idx] < STATE_VISIBLE:
+				_cells[idx] = STATE_VISIBLE
 	_dirty = true
+
+
+## 视野方向：玩家指向鼠标；鼠标贴身/无效时保留上一有效方向（初始向右）。
+## aim_override 非 ZERO 时直接采用（headless 测试无鼠标）。
+func _aim_dir(ppos: Vector2) -> Vector2:
+	if aim_override != Vector2.ZERO:
+		return aim_override.normalized()
+	var aim := get_global_mouse_position() - ppos
+	if aim.length() >= 8.0:
+		_last_aim = aim.normalized()
+	return _last_aim
+
+
+## 距离与方向判定：全向圈内恒真；锥环内要求与视野方向夹角 ≤ 半角。
+func _in_view(point: Vector2, ppos: Vector2, aim: Vector2, cos_half: float) -> bool:
+	var offset := point - ppos
+	var d := offset.length()
+	if d <= omni_radius:
+		return true
+	if d > cone_radius:
+		return false
+	if d < 0.01:
+		return true
+	return offset.normalized().dot(aim) >= cos_half
+
+
+## 视线无遮挡：从玩家到目标点做射线检测（查视线层 2，排除玩家自身）。
+## 窗户不占视线层 → 射线自然穿透；墙/家具/关着的门 → 截断。
+func _line_clear(from: Vector2, to: Vector2) -> bool:
+	var space := _player.get_world_2d().direct_space_state
+	var query := PhysicsRayQueryParameters2D.create(from, to, SIGHT_MASK, [_player.get_rid()])
+	return space.intersect_ray(query).is_empty()
 
 
 ## 情报解锁：把一片区域直接标为"已探索"（地图上可见，但不当作当前视野）。

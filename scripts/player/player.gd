@@ -51,6 +51,7 @@ var health := 100.0
 var food := 100.0
 var water := 100.0
 var dead := false
+var god_mode := false  ## 仅调试键（DebugCheats）切换；Release 版无入口，恒为 false
 ## 枪械弹药储备：弹盒物品按 E 装填进来，射击时逐发消耗。
 var ammo_pistol := 0
 var ammo_rifle := 0
@@ -410,7 +411,7 @@ func _spawn_pickup_nearby(item: ItemData, spread: float) -> void:
 
 
 func take_damage(amount: int, from_direction := Vector2.ZERO) -> void:
-	if dead:
+	if dead or god_mode:
 		return
 	# 护甲 = 百分比减伤（总防 ÷20），减完至少剩 1 点——防具降低风险但无法免疫伤害。
 	var final_damage := maxi(1, roundi(amount * (1.0 - minf(float(total_defense()), 20.0) / 20.0)))

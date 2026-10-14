@@ -38,6 +38,7 @@ var _wobble_accum := 0.0
 
 func _ready() -> void:
 	super()
+	can_wander = false  # Boss 驻守停机坪，不参与自主游荡
 	attack_cooldown = 1.2  # 普攻比小怪慢：绕背/走位的机会
 
 

@@ -23,6 +23,18 @@ func _run() -> void:
 	var player: Player = main.get_node("Player")
 	var spawn: Marker2D = main.get_node("SpawnPoint")
 
+	# 前半段大量断言按刷点位置统计丧尸（建筑守卫等）：先冻结自主游荡，
+	# 防止游荡漂移造成随机失败；感知段之前的守卫断言结束后恢复。
+	var wander_frozen: Array[Zombie] = []
+	for node in get_nodes_in_group("zombies"):
+		var fz := node as Zombie
+		if fz.can_wander:
+			wander_frozen.append(fz)
+			fz.can_wander = false
+	for node in get_nodes_in_group("zombies"):  # 测试定身语义：失明的不解冻
+		if node.detect_radius <= 0:
+			wander_frozen.erase(node)
+
 	_check(player.inventory.capacity == 8, "玩家初始背包 8 格")
 	_check(player.health == 100.0, "玩家初始血量 100")
 	_check(get_nodes_in_group("zombies").size() > 0, "生成系统刷出了僵尸")
@@ -192,11 +204,25 @@ func _run() -> void:
 			"门开后僵尸会追进屋")
 	door.interact(player)  # 关门恢复
 
-	# 家具容器与超市货架都挂在固定节点下；测试用的"物资箱"必须取生成点刷出的那只
+	# 本段玩家要多次传送到箱子/家具旁，而守卫刷点（军营/五金店）就在附近：
+	# 丧尸随机刷在玩家传送点上时，物理推挤会把玩家挤出交互检测区，造成与本
+	# 测试无关的随机失败。把丧尸失明并瞬移到图外（段末恢复原位与视野，不影
+	# 响后面的建筑守卫位置断言——恢复与断言之间没有物理帧）。
+	var zombie_sight: Dictionary = {}
+	for node in get_nodes_in_group("zombies"):
+		var z := node as Zombie
+		zombie_sight[z] = [z.detect_radius, z.global_position]
+		z.detect_radius = 0
+		z.global_position = Vector2(5000, 5000)
+	# 家具容器与超市货架都挂在固定节点下；测试用"物资箱"选军营南墙外的 Box1：
+	# HardwareBox 刷点紧邻五金店货架（140×70 交互区，中心距刷点仅 80px），
+	# 箱子偏东刷时玩家传送点与货架并列最近，货架会抢走 nearest 探测（随机失败源）；
+	# Box1 周边 100px 内没有其他交互物，探测结果唯一。
 	var box: StorageBox = null
 	for node in get_nodes_in_group("containers"):
 		var candidate := node as StorageBox
-		if candidate != null and candidate.get_parent() is SpawnPoint:
+		if candidate != null and candidate.get_parent() is SpawnPoint \
+				and (candidate.get_parent() as Node).name == "Box1":
 			box = candidate
 			break
 	_check(box.storage.item_count() > 0, "箱子按掉落表携带物资")
@@ -262,6 +288,11 @@ func _run() -> void:
 	var hud_node: Hud = main.get_node("HUD")
 	hud_node._on_sofa_menu_closed()
 	_check(not main.get_node("HUD/Root/SofaPanel").visible, "离开沙发后选项面板自动关闭")
+
+	# 家具/箱子段结束，恢复丧尸位置与视野
+	for z in zombie_sight:
+		z.detect_radius = zombie_sight[z][0]
+		z.global_position = zombie_sight[z][1]
 
 	# 超市：货架容器、守卫僵尸、南墙入口可通行
 	var market: Node2D = main.get_node("Market")
@@ -710,6 +741,10 @@ func _run() -> void:
 				and mg.global_position.y > 150.0 and mg.global_position.y < 510.0:
 			mil_guards += 1
 	_check(mil_guards >= 4, "军事基地内有守卫僵尸")
+	# 最后一个按位置统计的守卫断言已过：恢复自主游荡，供后续行为测试使用
+	for fz in wander_frozen:
+		if is_instance_valid(fz):
+			fz.can_wander = true
 	var radio: Interactable = main.get_node("Radio")
 	var pilot: SurvivorNpc = main.get_node("Pilot")
 	_check(radio != null and pilot != null, "收音机与飞行员 NPC 都在场景里")
@@ -809,6 +844,13 @@ func _run() -> void:
 	_check(nav_path.size() >= 2 and path_len > straight * 1.15,
 			"导航路径绕过超市墙体（经门口绕行而非直线穿墙）")
 	# 2) 隔墙失明：丧尸在超市墙外 184px（视野 260 内），但视线被墙体挡住
+	# 先清掉场上守卫：玩家就站在 MarketGuard 刷点内，贴脸守卫会被挥砍命中
+	# 触发惨叫（声源=丧尸位置≠玩家位置），覆盖挥砍声源记忆造成随机失败。
+	# 守卫位置断言已在前面测过；Boss（Brute）保留——后面的读档测试需要它。
+	for node in get_nodes_in_group("zombies"):
+		if node is Brute:
+			continue
+		node.queue_free()
 	var wall_blind: Zombie = zscene_per.instantiate()
 	main.add_child(wall_blind)
 	wall_blind.global_position = Vector2(1780, 1200)
@@ -824,6 +866,19 @@ func _run() -> void:
 	_check(wall_blind._memory_left > 0.0 \
 			and wall_blind._last_seen.distance_to(player.global_position) < 2.0,
 			"隔墙挥砍声引来丧尸调查（记住声源位置）")
+	# 3b) 声音半径外：挥砍声 240px 传不到远处丧尸
+	wall_blind.global_position = Vector2(1500, 1200)  # 距玩家约 424px
+	wall_blind._memory_left = 0.0
+	player._attack_toward(Vector2.RIGHT)
+	await physics_frame
+	await physics_frame
+	_check(wall_blind._memory_left == 0.0, "声音半径之外的丧尸不会收到挥砍声")
+	# 3c) 调查记忆按时限衰减，超时后丧尸放弃调查
+	#（headless 的 delta 是墙钟且极短，取极小初值保证任意正 delta 一帧衰减到零）
+	wall_blind._memory_left = 0.000001
+	await physics_frame
+	await physics_frame
+	_check(wall_blind._memory_left == 0.0, "调查记忆超时归零（丧尸会放弃调查）")
 	wall_blind.queue_free()
 	# 4) 关门挡视线、开门能看见（营地安全屋）
 	var gate_door := main.get_node("Door") as Door
@@ -854,6 +909,162 @@ func _run() -> void:
 		await physics_frame
 	_check(field_chaser.global_position.x > chaser_start_x + 20.0, "视线通畅时丧尸朝玩家移动")
 	field_chaser.queue_free()
+
+	# 6) Boss 冲撞视线门槛：隔墙不冲撞，获得视线后才起跑（不隔墙撞墙）
+	var boss_probe: Brute = (load("res://scenes/enemies/Brute.tscn") as PackedScene).instantiate()
+	main.add_child(boss_probe)
+	boss_probe.global_position = Vector2(1780, 1200)  # 超市墙外
+	player.global_position = Vector2(1900, 1060)      # 墙内（距探针约 184px，在冲撞距离区间内）
+	for i in 8:
+		await physics_frame
+	boss_probe._charge_cd = 0.0
+	boss_probe._try_start_charge()
+	_check(boss_probe._state != Brute.State.CHARGE_WINDUP, "隔墙时 Boss 不发动冲撞")
+	boss_probe._sees_player = true  # 模拟获得视线
+	boss_probe._try_start_charge()
+	_check(boss_probe._state == Brute.State.CHARGE_WINDUP, "有视线时 Boss 正常进入冲撞前摇")
+	boss_probe.queue_free()
+
+	# —— 自主行为：游荡 / 搜索 / 调查切换 ——
+	# （headless 下帧率与墙钟不对应，行为断言一律事件驱动 + 帧数上限兜底）
+	# 1) 无目标自主游荡：看不见玩家也无记忆时，丧尸在附近游荡而非罚站
+	# 玩家放东北角空地（距丧尸 1300px+，超视野）：不能用"躲安全屋"制造不可见——
+	# 安全屋关门会触发 target_sheltered 屏蔽调查分支，游荡断言过但调查断言必挂
+	var wb_a: Zombie = zscene_per.instantiate()
+	main.add_child(wb_a)
+	wb_a.global_position = Vector2(560, 700)
+	player.global_position = Vector2(1900, 300)
+	var wa_start := wb_a.global_position
+	var wandered := false
+	for i in 1500:
+		await physics_frame
+		if wb_a.global_position.distance_to(wa_start) > 25.0:
+			wandered = true
+			break
+	_check(wandered, "无目标丧尸自主游荡（实际发生位移）")
+	_check(wb_a.global_position.distance_to(wa_start) < 400.0,
+			"游荡位移受导航约束（不会瞬移/狂奔出区域）")
+	# 2) 游荡节奏不同步：同点放出的两只丧尸停顿/目标互不相同
+	var wb_b: Zombie = zscene_per.instantiate()
+	main.add_child(wb_b)
+	wb_b.global_position = Vector2(580, 720)
+	var desynced := false
+	for i in 240:
+		await physics_frame
+		if wb_a._wander_wait != wb_b._wander_wait \
+				or wb_a._wander_point != wb_b._wander_point:
+			desynced = true
+			break
+	_check(desynced, "两只丧尸游荡节奏不同步")
+	wb_b.queue_free()  # 断言 2 完成，移除 wb_b：后续 wb_a 要瞬移到附近测试，
+	# 两只丧尸碰撞体叠在一起会物理互挤，卡住移动造成随机失败
+	# 3) 声音打断游荡：记住声源并前往调查（距离明显缩短）
+	# 确定性部分：hear_noise 后立即进入调查状态（记忆 > 0 且未到达声源）
+	wb_a.global_position = Vector2(560, 700)  # 瞬移到固定点，排除游荡漂移干扰
+	wb_a.hear_noise(Vector2(950, 700))
+	_check(wb_a._ai_state() == "INVESTIGATE", "声音打断游荡（立即进入调查状态）")
+	# 位移部分：事件驱动等待接近声源（headless 帧率随机器波动，上限放宽）
+	var d0 := wb_a.global_position.distance_to(Vector2(950, 700))
+	var approached := false
+	for i in 3000:
+		await physics_frame
+		if wb_a.global_position.distance_to(Vector2(950, 700)) < d0 - 50.0:
+			approached = true
+			break
+	_check(approached, "调查状态下丧尸实际向声源移动")
+	# 4) 搜索/调查结束（记忆耗尽）后恢复游荡：状态最终回到 WANDER/IDLE
+	wb_a._memory_left = 0.0001
+	var resumed := false
+	for i in 2500:
+		await physics_frame
+		if wb_a._ai_state() == "WANDER" or wb_a._ai_state() == "IDLE":
+			resumed = true
+			break
+	_check(resumed, "搜索结束后恢复自主游荡")
+	# 5) 游荡中重新看见玩家 → 立即恢复追击
+	# 玩家动态传到丧尸旁 100px 的空地上（不赌固定坐标；感知周期 0.15s，留足余量）
+	player.global_position = wb_a.global_position + Vector2(100, 0)
+	var saw_again := false
+	for i in 600:
+		await physics_frame
+		if wb_a._sees_player and wb_a._ai_state() == "CHASE":
+			saw_again = true
+			break
+	_check(saw_again, "游荡中重新看见玩家立即转为追击")
+	# 6) Boss 不参与游荡：无目标时保持驻守
+	var boss_guard: Brute = (load("res://scenes/enemies/Brute.tscn") as PackedScene).instantiate()
+	main.add_child(boss_guard)
+	boss_guard.global_position = Vector2(700, 560)
+	player.global_position = Vector2(1900, 1060)  # 远离且隔超市墙
+	var bg_start := boss_guard.global_position
+	for i in 150:
+		await physics_frame
+	_check(boss_guard.global_position.distance_to(bg_start) < 5.0,
+			"Boss 无目标时不游荡（保持驻守）")
+	boss_guard.queue_free()
+	wb_a.queue_free()
+
+	# —— 玩家视野：全向 + 视野锥 + 墙体遮挡 / 窗户透视 ——
+	# headless 无鼠标：关掉 fog 自动刷新，用 aim_override 固定方向手动驱动。
+	fog.set_physics_process(false)
+	fog.aim_override = Vector2.RIGHT
+	# 1) 开阔地：锥内远处格可见，锥外同距格不可见（方向性）
+	player.global_position = Vector2(800, 700)
+	await physics_frame
+	await physics_frame
+	fog.reveal_now()
+	_check(fog.cell_state(16, 11) == FogOfWar.STATE_VISIBLE,
+			"视野锥内远距格子可见（aim=右，(1056,736) 距 258px）")
+	_check(fog.cell_state(8, 11) != FogOfWar.STATE_VISIBLE,
+			"视野锥外同距格子不可见（玩家左侧 243px）")
+	# 2) 方向切换：aim 转向左后，原锥内格熄灭、新方向格点亮
+	fog.aim_override = Vector2.LEFT
+	fog.reveal_now()
+	_check(fog.cell_state(8, 11) == FogOfWar.STATE_VISIBLE,
+			"转向后视野锥随鼠标方向更新（左侧格点亮）")
+	_check(fog.cell_state(16, 11) != FogOfWar.STATE_VISIBLE,
+			"转向后原右侧远格不再当前可见")
+	# 3) 全向圈隔墙遮挡：玩家在超市室内贴东墙上段墙（y 820~950），
+	#    墙外贴脸格子不因距离近而可见（64px 网格下墙带内无格中心，
+	#    用"室内贴墙→室外格"方向验证遮挡）
+	player.global_position = Vector2(2120, 930)
+	fog.aim_override = Vector2.RIGHT
+	await physics_frame
+	await physics_frame
+	fog.reveal_now()
+	_check(fog.cell_state(33, 14) != FogOfWar.STATE_VISIBLE,
+			"全向圈内隔墙格子不可见（墙体截断近距视线）")
+	# 4) 窗户透视：玩家在室内贴东墙窗洞（y 950~1050 @ x=2132），
+	#    透过窗看见室外；窗旁下段墙（y 1050~1180）仍遮挡
+	player.global_position = Vector2(2120, 1010)
+	await physics_frame
+	await physics_frame
+	fog.reveal_now()
+	_check(fog.cell_state(33, 15) == FogOfWar.STATE_VISIBLE,
+			"透过窗户可见室外近格（视线穿窗、窗后无墙）")
+	_check(fog.cell_state(33, 17) != FogOfWar.STATE_VISIBLE,
+			"窗户旁的墙体仍遮挡视线（不会整面墙透视）")
+	var zwin: Zombie = zscene_per.instantiate()
+	main.add_child(zwin)
+	zwin.global_position = Vector2(2090, 1000)
+	await physics_frame
+	await physics_frame
+	_check(zwin._has_line_of_sight(), "丧尸隔窗能看见窗外玩家（窗户允许视觉检测）")
+	zwin.global_position = Vector2(2090, 880)
+	await physics_frame
+	await physics_frame
+	_check(not zwin._has_line_of_sight(), "丧尸隔窗旁墙体看不见玩家（墙仍遮挡）")
+	zwin.queue_free()
+	# 5) 窗户挡移动：朝窗冲刺被实体碰撞拦下，不能穿窗
+	player.global_position = Vector2(2200, 1000)
+	player.velocity = Vector2(-400, 0)
+	for i in 40:
+		player.move_and_slide()
+		await physics_frame
+	_check(player.global_position.x > 2152.0, "窗户阻挡角色移动（不能穿窗）")
+	player.velocity = Vector2.ZERO
+	fog.set_physics_process(true)
+	fog.aim_override = Vector2.ZERO
 
 	# 存档 / 读档
 	var saved_day: int = main.get_node("DayNight").day_number
@@ -904,6 +1115,69 @@ func _run() -> void:
 	_check(hud.get_node("Root/PauseMenu").visible, "暂停菜单面板可见")
 	hud.toggle_pause_menu()
 	_check(not paused and not hud._menu_open, "关闭菜单后恢复运行")
+
+	# —— 调试键（DebugCheats）：只在调试构建存在；逐个调方法验证效果 ——
+	var cheats: DebugCheats = null
+	for child in main.get_children():
+		if child is DebugCheats:
+			cheats = child
+			break
+	_check(cheats != null, "调试构建挂载了调试键节点")
+	if cheats != null:
+		# F1 全场击杀（读档测试已结束，此时杀 Boss 不影响后续断言）
+		var alive_before := 0
+		for node in get_nodes_in_group("zombies"):
+			var z := node as Zombie
+			if z.health > 0.0:
+				alive_before += 1
+		cheats._kill_all_zombies()
+		var alive_after := 0
+		for node in get_nodes_in_group("zombies"):
+			var z := node as Zombie
+			if z.health > 0.0:
+				alive_after += 1
+		_check(alive_before > 0 and alive_after == 0,
+				"调试键 F1 击杀全场丧尸（%d -> 0 存活）" % alive_before)
+		# F2 无敌：开启后伤害无效，关闭后恢复
+		player.god_mode = false
+		cheats._toggle_god_mode()
+		var cheat_hp := player.health
+		player.take_damage(30)
+		_check(player.health == cheat_hp, "调试键 F2 开启无敌后受到伤害无效")
+		cheats._toggle_god_mode()
+		player.take_damage(30)
+		_check(player.health < cheat_hp, "调试键 F2 关闭无敌后恢复受伤")
+		player.god_mode = false  # 复位，避免影响后续测试
+		# F3 测试物资包：清背包重发，含撤离清单四项
+		player.inventory.clear()
+		cheats._give_test_kit()
+		_check(player.inventory.count_of(load("res://data/items/fuel.tres") as ItemData) >= 1
+				and player.inventory.count_of(load("res://data/items/med_firstaid.tres") as ItemData) >= 1
+				and player.inventory.count_of(load("res://data/items/food_canned.tres") as ItemData) >= 2
+				and player.inventory.count_of(load("res://data/items/water_bottle.tres") as ItemData) >= 2,
+				"调试键 F3 发放含撤离清单的标准测试包")
+		_check(player.ammo_pistol >= 60 and player.ammo_rifle >= 60, "调试键 F3 同步补充备弹")
+		# F4 昼夜切换
+		var was_night: bool = main.get_node("DayNight").is_night
+		cheats._toggle_day_night()
+		_check(main.get_node("DayNight").is_night != was_night, "调试键 F4 切换昼夜")
+		cheats._toggle_day_night()  # 切回，保持现场一致
+		# F5 状态回满
+		player.health = 10.0
+		player.food = 5.0
+		player.water = 5.0
+		cheats._refill_status()
+		_check(player.health == float(player.max_health) and player.food == player.max_food
+				and player.water == player.max_water, "调试键 F5 回满生命/食物/水")
+		# 按键路径：真实派发 F5 按键事件，确认 _unhandled_input 能接住
+		player.health = 10.0
+		var f5 := InputEventKey.new()
+		f5.keycode = KEY_F5
+		f5.pressed = true
+		Input.parse_input_event(f5)
+		for i in 4:
+			await physics_frame
+		_check(player.health == float(player.max_health), "调试键 F5 实际按键可触发")
 
 	print("----------------------------------------")
 	root.remove_child(main)

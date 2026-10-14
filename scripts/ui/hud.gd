@@ -152,7 +152,6 @@ func _on_pause_load() -> void:
 		menu_backend.load_game()
 	_close_menu()
 
-
 func _on_pause_quit() -> void:
 	get_tree().paused = false
 	get_tree().quit()

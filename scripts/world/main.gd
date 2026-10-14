@@ -130,6 +130,8 @@ func _ready() -> void:
 	_player.intel_found.connect(_on_intel_found)
 	_hud.attach_map(_fog, MAP_BUILDINGS, map_markers, _player)
 	_setup_navigation()
+	if OS.is_debug_build():  # 测试专用调试键（F1-F5），Release 导出自动移除
+		add_child(preload("res://scripts/systems/debug_cheats.gd").new())
 
 
 ## 烘焙丧尸寻路用的导航网格：用地图边界做可通行外轮廓，解析主场景下所有
