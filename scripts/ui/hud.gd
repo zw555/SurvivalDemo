@@ -48,9 +48,18 @@ const SLOT_SIZE := Vector2(46, 46)
 @onready var _ending_restart: Button = $Root/EndingPanel/Center/Panel/EndingBox/EndingRestartButton
 @onready var _map_panel: PanelContainer = $Root/MapPanel
 @onready var _map_canvas: MapCanvas = $Root/MapPanel/MapBox/MapCanvas
+@onready var _quest_tracker_panel: PanelContainer = $Root/QuestTrackerPanel
+@onready var _quest_tracker_list: VBoxContainer = $Root/QuestTrackerPanel/QuestTrackerBox/QuestList
+@onready var _quest_tracker_empty: Label = $Root/QuestTrackerPanel/QuestTrackerBox/TrackerEmpty
+@onready var _quest_panel: PanelContainer = $Root/QuestPanel
+@onready var _quest_panel_list: VBoxContainer = $Root/QuestPanel/QuestBox/QuestScroll/QuestList
+@onready var _quest_close_button: Button = $Root/QuestPanel/QuestBox/QuestCloseButton
+@onready var _quest_list_button: Button = $Root/PauseMenu/Center/Panel/MenuBox/QuestListButton
 
 ## 提供 save_game()/load_game() 的后端（主场景），由 main.gd 注入。
 var menu_backend: Node
+## 任务管理模块（追踪状态与任务数据的唯一来源），由 main.gd 注入。
+var _quests: QuestManager
 var _player: Player
 var _container: ContainerBase
 var _sofa: Sofa
@@ -82,6 +91,8 @@ func _ready() -> void:
 	_npc_deliver_button.pressed.connect(func() -> void: npc_deliver_pressed.emit())
 	_ending_continue.pressed.connect(_on_ending_continue)
 	_ending_restart.pressed.connect(_on_ending_restart)
+	_quest_list_button.pressed.connect(_on_quest_list_opened)
+	_quest_close_button.pressed.connect(_on_quest_list_closed)
 	_recipes = Crafting.load_recipes()
 
 
@@ -134,6 +145,7 @@ func _open_menu() -> void:
 func _close_menu() -> void:
 	_menu_open = false
 	_pause_menu.visible = false
+	_quest_panel.visible = false
 	get_tree().paused = false
 
 
@@ -213,6 +225,108 @@ func toggle_map(force: Variant = null) -> void:
 func _close_map_if_open() -> void:
 	if _map_open:
 		toggle_map(false)
+
+
+## 注册任务管理模块：追踪 HUD 与任务列表面板只读快照，状态全在 QuestManager。
+## 任务/追踪变化 → 自动刷新右上角追踪面板；追踪槽满 → 顶部提示，不静默覆盖。
+func attach_quests(quests: QuestManager) -> void:
+	_quests = quests
+	quests.quest_changed.connect(_refresh_quest_tracker)
+	quests.tracked_changed.connect(_refresh_quest_tracker)
+	quests.track_rejected.connect(func(_id: String) -> void:
+		show_message("最多同时追踪 3 个任务，请先在任务列表里取消一个", 3.0))
+	_refresh_quest_tracker()
+
+
+## 右上角追踪面板：最多 3 个任务卡（标题 + 当前目标 + 完成计数），
+## 无追踪任务时显示简洁空状态。整面板 mouse_filter=IGNORE，不挡游戏世界点击。
+func _refresh_quest_tracker(_changed_id: String = "") -> void:
+	if _quest_tracker_panel == null:
+		return
+	for child in _quest_tracker_list.get_children():
+		_quest_tracker_list.remove_child(child)
+		child.queue_free()
+	var snapshot: Array = _quests.tracked_snapshot() if _quests != null else []
+	_quest_tracker_empty.visible = snapshot.is_empty()
+	_quest_tracker_panel.visible = true
+	for entry in snapshot:
+		var card := VBoxContainer.new()
+		card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_theme_constant_override("separation", 1)
+		var title := Label.new()
+		title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		title.text = "◆ %s（%d/%d）" % [entry.title, entry.done, entry.total]
+		title.add_theme_font_size_override("font_size", 12)
+		title.add_theme_color_override("font_color", Color(0.95, 0.9, 0.7))
+		card.add_child(title)
+		var obj := Label.new()
+		obj.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		obj.text = "  " + str(entry.current_text)
+		obj.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		obj.custom_minimum_size = Vector2(240, 0)
+		obj.max_lines_visible = 2
+		obj.add_theme_font_size_override("font_size", 11)
+		obj.add_theme_color_override("font_color", Color(0.85, 0.85, 0.8))
+		card.add_child(obj)
+		_quest_tracker_list.add_child(card)
+
+
+## —— 任务列表面板（ESC 菜单 → 任务列表）—————————————————
+
+func _on_quest_list_opened() -> void:
+	_refresh_quest_panel()
+	_quest_panel.visible = true
+
+
+func _on_quest_list_closed() -> void:
+	_quest_panel.visible = false
+
+
+## 完整任务列表：每个已接取任务显示目标明细（✓/·）与追踪开关。
+func _refresh_quest_panel() -> void:
+	for child in _quest_panel_list.get_children():
+		_quest_panel_list.remove_child(child)
+		child.queue_free()
+	if _quests == null:
+		return
+	var snapshot: Array = _quests.quests_snapshot()
+	if snapshot.is_empty():
+		var empty := Label.new()
+		empty.text = "还没有任务。听听收音机的广播吧。"
+		empty.add_theme_font_size_override("font_size", 12)
+		_quest_panel_list.add_child(empty)
+		return
+	for entry in snapshot:
+		var box := VBoxContainer.new()
+		box.add_theme_constant_override("separation", 2)
+		var head := HBoxContainer.new()
+		var title := Label.new()
+		title.text = str(entry.title) + ("（已完成）" if entry.completed else "")
+		title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		title.add_theme_font_size_override("font_size", 13)
+		title.add_theme_color_override("font_color", Color(0.9, 0.95, 0.85))
+		head.add_child(title)
+		var toggle := Button.new()
+		toggle.custom_minimum_size = Vector2(72, 26)
+		toggle.text = "取消追踪" if entry.tracked else "追踪"
+		toggle.pressed.connect(_on_quest_track_toggled.bind(str(entry.id)))
+		head.add_child(toggle)
+		box.add_child(head)
+		for obj in entry.objectives:
+			var line := Label.new()
+			line.text = ("  ✓ " if obj.done else "  · ") + str(obj.text)
+			line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			line.add_theme_font_size_override("font_size", 12)
+			line.add_theme_color_override("font_color",
+					Color(0.6, 0.8, 0.6) if obj.done else Color(0.8, 0.8, 0.75))
+			box.add_child(line)
+		_quest_panel_list.add_child(box)
+
+
+func _on_quest_track_toggled(quest_id: String) -> void:
+	if _quests != null:
+		_quests.toggle_track(quest_id)
+	_refresh_quest_panel()
 
 
 func _on_workbench_menu() -> void:

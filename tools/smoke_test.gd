@@ -797,6 +797,58 @@ func _run() -> void:
 	hud_node._on_ending_continue()
 	_check(not main.get_node("HUD/Root/EndingPanel").visible, "选择继续生存后世界恢复运行")
 
+	# —— 任务追踪：接取/追踪分离、槽位上限、完成释放、HUD 刷新 ——
+	var quests: QuestManager = main._quests
+	_check(quests != null and quests.is_accepted("evacuate"),
+			"撤离任务处于已接取状态（随任务链路自动接取）")
+	_check(quests.is_completed("evacuate") and not quests.is_tracked("evacuate"),
+			"任务完成自动释放追踪槽位")
+	var hud_q: Hud = main.get_node("HUD")
+	var tracker_panel: PanelContainer = hud_q.get_node("Root/QuestTrackerPanel")
+	_check(tracker_panel.mouse_filter == Control.MOUSE_FILTER_IGNORE,
+			"追踪 HUD 不拦截鼠标（不挡游戏世界点击）")
+	quests.define_quest("t_a", "测试甲", [{"id": "o", "text": "目标一"}])
+	quests.define_quest("t_b", "测试乙", [{"id": "o", "text": "目标一"}])
+	quests.define_quest("t_c", "测试丙", [{"id": "o", "text": "目标一"}])
+	quests.define_quest("t_d", "测试丁", [{"id": "o", "text": "目标一"}])
+	quests.accept("t_a")
+	_check(quests.is_accepted("t_a") and not quests.is_tracked("t_a"),
+			"接取任务不会自动占用追踪槽位（接取≠追踪）")
+	_check(quests.track("t_a") and quests.track("t_b") and quests.track("t_c"),
+			"手动追踪至 3 个任务")
+	var track_rejected_flag: Array = []  # lambda 按值捕获局部变量，用引用类型做标志
+	quests.track_rejected.connect(func(_id: String) -> void: track_rejected_flag.append(true),
+			CONNECT_ONE_SHOT)
+	_check(not quests.track("t_d") and not track_rejected_flag.is_empty()
+			and not quests.is_tracked("t_d"), "槽位满时第 4 个追踪被拒绝（不静默覆盖）")
+	_check(hud_q.get_node("Root/QuestTrackerPanel/QuestTrackerBox/QuestList")
+			.get_child_count() == 3, "追踪 HUD 显示 3 个任务卡")
+	_check(not hud_q.get_node("Root/QuestTrackerPanel/QuestTrackerBox/TrackerEmpty").visible,
+			"有追踪任务时不显示空状态")
+	var quest_changed_flag: Array = []
+	quests.quest_changed.connect(func(_id: String) -> void: quest_changed_flag.append(true),
+			CONNECT_ONE_SHOT)
+	quests.set_objective_text("t_a", "o", "目标一（进度 1/2）")
+	_check(not quest_changed_flag.is_empty(),
+			"目标进度变化发出 quest_changed（HUD 自动刷新依据）")
+	var a_entry := {}
+	for e in quests.tracked_snapshot():
+		if e.id == "t_a":
+			a_entry = e
+	_check(not a_entry.is_empty() and str(a_entry.current_text) == "目标一（进度 1/2）",
+			"追踪快照返回最新目标文本（进度实时）")
+	quests.untrack("t_a")
+	_check(quests.is_accepted("t_a") and not quests.is_tracked("t_a"),
+			"取消追踪不影响任务接取状态")
+	quests.untrack("t_b")
+	quests.untrack("t_c")
+	_check(hud_q.get_node("Root/QuestTrackerPanel/QuestTrackerBox/TrackerEmpty").visible,
+			"无追踪任务时显示简洁空状态")
+	quests.track("t_d")
+	_check(quests.is_tracked("t_d"), "槽位释放后可再次追踪")
+	quests.complete_quest("t_d")
+	_check(not quests.is_tracked("t_d"), "追踪中的任务完成后自动从 HUD 移除")
+
 	# 地图迷雾与标记：揭开、保留、三态地点与情报解锁
 	var fog: FogOfWar = main.get_node("FogOfWar")
 	_check(fog != null and fog.col_count() > 0, "迷雾系统挂载且网格已生成")
@@ -1097,6 +1149,7 @@ func _run() -> void:
 	var pickups_before_save: int = get_nodes_in_group("pickups").size()
 	var fog_bits_before: String = fog.get_save_data()
 	main.map_markers["hardware"] = 2
+	main._quests.track("t_a")  # 任务追踪状态随存档保留的验证样本
 	main.save_game()
 	player.health = 10.0
 	player.inventory.clear()
@@ -1115,6 +1168,7 @@ func _run() -> void:
 	_check(main.quest_stage == "escaped", "读档保留撤离任务的结局状态")
 	_check(fog.get_save_data() == fog_bits_before, "读档保留迷雾探索进度")
 	_check(int(main.map_markers["hardware"]) == 2, "读档保留地图标记状态")
+	_check(main._quests.is_tracked("t_a"), "读档保留任务追踪状态")
 	var boss_after_load := 0
 	for node in get_nodes_in_group("zombies"):
 		if node is Brute:

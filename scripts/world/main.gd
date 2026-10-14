@@ -61,6 +61,8 @@ const MAP_BUILDINGS: Array = [
 const MARKER_CHECK_INTERVAL := 0.4
 
 var quest_stage := STAGE_NONE
+## 任务管理模块：接取/目标进度/追踪状态的唯一数据源（HUD 只是展示）。
+var _quests: QuestManager
 ## 地点标记状态：id -> MARKER_*（随存档保留）。
 var map_markers := {}
 
@@ -107,6 +109,17 @@ func _ready() -> void:
 	_radio.broadcast_heard.connect(_on_radio_broadcast)
 	_pilot.talk_requested.connect(_on_pilot_talk)
 	_hud.npc_deliver_pressed.connect(_on_deliver_pressed)
+	# 任务管理：撤离主线。目标文本里的物资进度随背包变化实时刷新。
+	_quests = QuestManager.new()
+	_quests.name = "QuestManager"
+	add_child(_quests)
+	_quests.define_quest("evacuate", "撤离计划", [
+		{"id": "radio", "text": "收听收音机广播，找到撤离线索"},
+		{"id": "pilot", "text": "见到飞行员老周，接到物资清单"},
+		{"id": "supplies", "text": "收集物资：食物×2 · 水×2 · 汽油×1 · 医疗物资×1"},
+	])
+	_hud.attach_quests(_quests)
+	_player.inventory_changed.connect(_refresh_supply_objective)
 	_day_night.setup($DayNightModulate)
 	_day_night.day_started.connect(_on_day_started)
 	_day_night.night_started.connect(_on_night_started)
@@ -230,6 +243,9 @@ func _on_radio_broadcast() -> void:
 	discover_marker("military")
 	if quest_stage == STAGE_NONE:
 		quest_stage = STAGE_RADIO
+		# 任务接取与追踪是两个独立状态：教学主线默认追踪（只占 1 个槽位）
+		_quests.accept("evacuate", true)
+		_quests.set_objective_done("evacuate", "radio")
 		_hud.show_thought("广播是真的……城北有个军营，还有个会开飞机的活人。",
 				"军营在地图北边。带上武器去找那个幸存者。")
 
@@ -245,6 +261,8 @@ func _on_pilot_talk() -> void:
 					false)
 		STAGE_RADIO:
 			quest_stage = STAGE_MET
+			_quests.set_objective_done("evacuate", "pilot")
+			_refresh_supply_objective()
 			_hud.show_npc_dialogue("飞行员 老周",
 					"你听到广播了？好。我就是那个开飞机的。\n\n"
 					+ "油料见底、人也饿垮了。想让我带你飞出这座城，把清单备齐——\n\n"
@@ -275,6 +293,7 @@ func _on_deliver_pressed() -> void:
 	for kind in SUPPLY_REQUIREMENTS:
 		_consume_kind(kind, int(SUPPLY_REQUIREMENTS[kind]))
 	quest_stage = STAGE_SUPPLIED
+	_quests.set_objective_done("evacuate", "supplies")
 	_pilot.global_position = PILOT_PAD_POSITION
 	_spawn_boss()
 	_hud.show_npc_dialogue("飞行员 老周",
@@ -303,6 +322,7 @@ func _trigger_ending() -> void:
 	if quest_stage == STAGE_ESCAPED:
 		return
 	quest_stage = STAGE_ESCAPED
+	_quests.complete_quest("evacuate")  # 完成即释放追踪槽位
 	_hud.show_ending(_day_night.day_number)
 
 
@@ -355,6 +375,22 @@ func _supplies_bbcode() -> String:
 		var color := "#9fd89f" if have >= need else "#e08a8a"
 		lines.append("[color=%s]%s ×%d（已有 %d）[/color]" % [color, names[kind], need, have])
 	return "\n".join(lines)
+
+
+## 物资目标进度文本（纯文本，供任务追踪 HUD/列表显示）；背包变化时自动刷新。
+func _refresh_supply_objective() -> void:
+	if not _quests.is_accepted("evacuate") or _quests.is_completed("evacuate"):
+		return
+	var names := {
+		ItemData.KIND_FOOD: "食物", ItemData.KIND_WATER: "水",
+		ItemData.KIND_FUEL: "汽油", ItemData.KIND_MEDICINE: "医疗物资",
+	}
+	var parts: Array[String] = []
+	for kind in SUPPLY_REQUIREMENTS:
+		var need := int(SUPPLY_REQUIREMENTS[kind])
+		parts.append("%s %d/%d" % [names[kind], mini(_count_kind(kind), need), need])
+	_quests.set_objective_text("evacuate", "supplies",
+			"收集物资：" + " · ".join(parts))
 
 
 ## 命中顿帧：命中瞬间全局时间短暂减速，随后恢复。
@@ -420,6 +456,7 @@ func save_game() -> void:
 		"boxes": boxes,
 		"thoughts": _thoughts.get_save_data(),
 		"quest_stage": quest_stage,
+		"quest_tracked": _quests.get_save_data(),
 		"map_markers": map_markers,
 		"fog": _fog.get_save_data(),
 	}
@@ -456,6 +493,9 @@ func load_game() -> void:
 	_door.set_closed(bool(data.get("gate_closed", true)))
 	_thoughts.load_save_data(data.get("thoughts", {}))
 	quest_stage = str(data.get("quest_stage", STAGE_NONE))
+	# 任务目标状态以 quest_stage 为唯一事实来源重建；追踪集合随存档恢复
+	_sync_quest_from_stage()
+	_quests.load_save_data(data.get("quest_tracked", {}))
 	# 迷雾探索进度与地点标记随存档恢复
 	var markers_data: Dictionary = data.get("map_markers", {})
 	for id in markers_data:
@@ -473,6 +513,24 @@ func load_game() -> void:
 			node.set_night_buffed(_day_night.is_night)
 	_hud.refresh_day_label(_day_night.day_number)
 	_hud.show_message("已读取存档", 2.0)
+
+
+## 读档后按 quest_stage 重建任务接取/目标状态（quest_stage 是任务进度的
+## 唯一事实来源，QuestManager 的目标只是它的展示投影）。
+func _sync_quest_from_stage() -> void:
+	if quest_stage == STAGE_NONE:
+		return
+	if not _quests.is_accepted("evacuate"):
+		_quests.accept("evacuate", false)  # 追踪集合随后由存档数据恢复
+	if quest_stage != STAGE_NONE:
+		_quests.set_objective_done("evacuate", "radio")
+	if quest_stage != STAGE_NONE and quest_stage != STAGE_RADIO:
+		_quests.set_objective_done("evacuate", "pilot")
+	if quest_stage == STAGE_SUPPLIED or quest_stage == STAGE_ESCAPED:
+		_quests.set_objective_done("evacuate", "supplies")
+	if quest_stage == STAGE_ESCAPED:
+		_quests.complete_quest("evacuate")
+	_refresh_supply_objective()
 
 
 ## 读档还原世界：清掉现存僵尸与地上物资，按存档重建；箱子内容按顺序覆盖。
