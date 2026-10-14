@@ -579,7 +579,7 @@ position = Vector2(650, 1110)
 position = Vector2(400, 1210)
 
 [node name="Radio" parent="." instance=ExtResource("68_radio")]
-position = Vector2(735, 1250)
+position = Vector2(202, 1098)
 
 [node name="ThoughtSystem" type="Node" parent="."]
 script = ExtResource("67_thought")
