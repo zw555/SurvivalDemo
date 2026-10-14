@@ -16,8 +16,9 @@ const STATE_VISIBLE := 2
 @export var cone_radius := 320.0
 ## 视野锥半角（度）：总夹角 = 2 × 半角，默认 120°。
 @export var cone_half_angle_deg := 60.0
-## 视线检测碰撞层：与丧尸视线一致的"视线遮挡层"（墙/家具/关着的门）。
-const SIGHT_MASK := 2
+## 视线检测碰撞层：**玩家视线遮挡层（值 4）**——只有墙/地图边界/建筑墙/关着的门
+## 在此层；家具只占丧尸视线层（值 2），不挡玩家视野（贴身家具不会把周围格子挡黑）。
+const SIGHT_MASK := 4
 
 ## 迷雾刷新间隔（秒）：不用每帧重算，0.15s 足够平滑。
 const TICK_INTERVAL := 0.15
@@ -79,7 +80,7 @@ func reveal_now() -> void:
 			var center := Vector2((gx + 0.5) * cell_size, (gy + 0.5) * cell_size)
 			if not _in_view(center, ppos, aim, cos_half):
 				continue
-			if not _line_clear(ppos, center):
+			if not _line_clear(ppos, center) and not _sub_points_clear(ppos, center):
 				continue
 			var idx := gy * _cols + gx
 			if _cells[idx] < STATE_VISIBLE:
@@ -117,6 +118,20 @@ func _line_clear(from: Vector2, to: Vector2) -> bool:
 	var space := _player.get_world_2d().direct_space_state
 	var query := PhysicsRayQueryParameters2D.create(from, to, SIGHT_MASK, [_player.get_rid()])
 	return space.intersect_ray(query).is_empty()
+
+
+## 格内子点采样：格心被挡时，在格内四角（±20px）补测，任意一点通视即算可见。
+## 解决"格中心恰好在沙发等窄家具/墙体内 → 格子永久黑"的粒度缺陷：
+## 窄家具能正常亮起，而贯穿整格的墙体子点仍全被挡，不会破坏隔墙遮挡。
+const SUB_SAMPLE_OFFSETS: Array[Vector2] = [
+	Vector2(-20, -20), Vector2(20, -20), Vector2(-20, 20), Vector2(20, 20),
+]
+
+func _sub_points_clear(from: Vector2, cell_center: Vector2) -> bool:
+	for off in SUB_SAMPLE_OFFSETS:
+		if _line_clear(from, cell_center + off):
+			return true
+	return false
 
 
 ## 情报解锁：把一片区域直接标为"已探索"（地图上可见，但不当作当前视野）。

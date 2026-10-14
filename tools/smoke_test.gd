@@ -1063,6 +1063,26 @@ func _run() -> void:
 		await physics_frame
 	_check(player.global_position.x > 2152.0, "窗户阻挡角色移动（不能穿窗）")
 	player.velocity = Vector2.ZERO
+	# 6) 家具不挡玩家视野：玩家视线只查墙/门层（值 4），贴身家具不再把格子挡黑
+	#    （回归：此前沙发所在格中心落在沙发碰撞体内 → 格子永久黑，"沙发只亮一半"）
+	player.global_position = Vector2(150, 1380)
+	fog.aim_override = Vector2.RIGHT
+	await physics_frame
+	await physics_frame
+	fog.reveal_now()
+	_check(fog.cell_state(1, 21) == FogOfWar.STATE_VISIBLE,
+			"贴身家具不挡玩家视野（沙发所在格可见）")
+	# 7) 家具夹缝不再"完全无视野"：沙发/桌子/西墙窄缝里，身边多数格子仍点亮
+	player.global_position = Vector2(118, 1330)
+	await physics_frame
+	await physics_frame
+	fog.reveal_now()
+	var lit := 0
+	for gy in range(19, 24):
+		for gx in range(0, 5):
+			if fog.cell_state(gx, gy) == FogOfWar.STATE_VISIBLE:
+				lit += 1
+	_check(lit >= 5, "家具夹缝处视野正常（5x5 内点亮 %d 格，修复前仅 1）" % lit)
 	fog.set_physics_process(true)
 	fog.aim_override = Vector2.ZERO
 

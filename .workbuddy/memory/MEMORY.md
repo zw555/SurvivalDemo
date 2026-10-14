@@ -46,4 +46,4 @@
 ## 引擎 API 备忘（4.5.2 实测）
 - **导航烘焙**：`NavigationPolygon` 已无 source_geometry_mode/source_group_name，走 `NavigationServer2D.parse_source_geometry_data(poly, data, root_node)` + `bake_from_source_geometry_data`；**parse 会清空 data，可通行外轮廓要在 parse 之后 `data.add_traversable_outline(...)`**，否则烘焙 0 多边形。
 - **class_name 不能与原生类重名**（如 Noise/Theme/Range），解析器会报 "hides a native class"。
-- 物理层约定：layer1 = 实体碰撞；layer2 = 视线遮挡（静态障碍 StaticBody2D 用 collision_layer=3 同时占用两层，丧尸视线射线只查 mask 2）。
+- 物理层约定（2026-10-14 更新）：layer1（值1）= 实体碰撞；layer2（值2）= 丧尸视线遮挡（墙+家具+门，丧尸射线 mask=2）；layer3（值4）= **玩家视线遮挡（仅墙/地图边界/建筑墙/门，fog mask=4）**——家具不挡玩家视野；窗户仅 layer1（挡移动不挡任何视线）。墙/门改碰撞层时勿漏 Main.tscn 10 处 + Door.tscn。
