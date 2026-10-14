@@ -38,6 +38,7 @@ var _last_aim := Vector2.RIGHT  ## 上一有效视野方向（鼠标无效时保
 
 
 func _ready() -> void:
+	add_to_group("fog_of_war")  # 供 FogLabel 等查询探索状态
 	z_index = 90  # 世界之上、CanvasLayer 之下
 	_cols = maxi(1, ceili(map_size.x / cell_size))
 	_rows = maxi(1, ceili(map_size.y / cell_size))

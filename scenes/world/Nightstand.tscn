@@ -1,8 +1,9 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/storage_box.gd" id="1_box"]
 [ext_resource type="Script" path="res://scripts/items/item_data.gd" id="2_item"]
 [ext_resource type="Resource" path="res://data/items/med_bandage.tres" id="3_bandage"]
+[ext_resource type="Script" path="res://scripts/ui/fog_label.gd" id="99_foglbl"]
 
 [sub_resource type="RectangleShape2D" id="NsInteract"]
 size = Vector2(90, 90)
@@ -36,10 +37,11 @@ color = Color(0.34, 0.25, 0.15, 1)
 polygon = PackedVector2Array(-18, -2, 18, -2, 18, 2, -18, 2)
 
 [node name="Label" type="Label" parent="."]
+script = ExtResource("99_foglbl")
 offset_left = -30.0
-offset_top = -36.0
+offset_top = -10.0
 offset_right = 30.0
-offset_bottom = -20.0
+offset_bottom = 6.0
 text = "床头柜"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.9, 0.85, 0.75, 1)

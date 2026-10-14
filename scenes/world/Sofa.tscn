@@ -1,6 +1,7 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/sofa.gd" id="1_sofa"]
+[ext_resource type="Script" path="res://scripts/ui/fog_label.gd" id="99_foglbl"]
 
 [sub_resource type="RectangleShape2D" id="SofaInteract"]
 size = Vector2(110, 130)
@@ -29,10 +30,11 @@ color = Color(0.28, 0.24, 0.35, 1)
 polygon = PackedVector2Array(-18, -55, -6, -55, -6, 55, -18, 55)
 
 [node name="Label" type="Label" parent="."]
+script = ExtResource("99_foglbl")
 offset_left = -30.0
-offset_top = -76.0
+offset_top = -10.0
 offset_right = 30.0
-offset_bottom = -60.0
+offset_bottom = 6.0
 text = "沙发"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.85, 0.9, 1, 1)

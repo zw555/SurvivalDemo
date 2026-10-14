@@ -1,10 +1,11 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/storage_box.gd" id="1_box"]
 [ext_resource type="Script" path="res://scripts/items/item_data.gd" id="2_item"]
 [ext_resource type="Resource" path="res://data/items/food_rice.tres" id="3_rice"]
 [ext_resource type="Resource" path="res://data/items/food_flour.tres" id="4_flour"]
 [ext_resource type="Resource" path="res://data/items/bottle_plastic.tres" id="5_bottle"]
+[ext_resource type="Script" path="res://scripts/ui/fog_label.gd" id="99_foglbl"]
 
 [sub_resource type="RectangleShape2D" id="CabinetInteract"]
 size = Vector2(140, 70)
@@ -38,10 +39,11 @@ color = Color(0.28, 0.19, 0.11, 1)
 polygon = PackedVector2Array(-2, -14, 2, -14, 2, 14, -2, 14)
 
 [node name="Label" type="Label" parent="."]
+script = ExtResource("99_foglbl")
 offset_left = -30.0
-offset_top = -36.0
+offset_top = -10.0
 offset_right = 30.0
-offset_bottom = -20.0
+offset_bottom = 6.0
 text = "柜子"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.85, 0.9, 1, 1)
