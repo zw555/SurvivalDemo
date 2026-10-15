@@ -807,6 +807,16 @@ func _run() -> void:
 				if item != null and item.kind == ItemData.KIND_AMMO:
 					ammo_outside_police += 1
 	_check(ammo_outside_police == 0, "弹药只从警局获得（其他建筑与掉落表不产弹药）")
+	var fixed_backpacks := 0
+	for node in get_nodes_in_group("containers"):
+		var bp_box := node as ContainerBase
+		if bp_box == null:
+			continue
+		for item in bp_box.storage.slots:
+			if item != null and item.kind == ItemData.KIND_BACKPACK:
+				fixed_backpacks += 1
+	_check(fixed_backpacks >= 2,
+			"固定背包 ≥2（清单 12 格 > 初始 8 格：必须找到背包扩容才装得下清单）")
 
 	# 军事基地与撤离任务：汽油、建筑物资、守卫、任务链四阶段与结局
 	var military: Node2D = main.get_node("MilitaryBase")

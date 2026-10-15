@@ -1557,7 +1557,7 @@ starting_items = Array[ExtResource("31_iscript")]([ExtResource("65_rope"), ExtRe
 [node name="ToolCounter" parent="HardwareStore" instance=ExtResource("30_shelf")]
 position = Vector2(2010, 1250)
 display_name = "工具柜台"
-starting_items = Array[ExtResource("31_iscript")]([ExtResource("66_shovel"), ExtResource("59_scrap"), ExtResource("63_tape")])
+starting_items = Array[ExtResource("31_iscript")]([ExtResource("66_shovel"), ExtResource("59_scrap"), ExtResource("63_tape"), ExtResource("40_backpack")])
 
 [node name="Player" parent="." instance=ExtResource("3_player")]
 position = Vector2(250, 1380)
