@@ -25,6 +25,15 @@ const SIGHT_MASK := 4
 ## 迷雾刷新间隔（秒）：不用每帧重算，0.15s 足够平滑。
 const TICK_INTERVAL := 0.15
 
+## —— 迷雾绘制模式（2026-10-15 视觉柔化原型，F6 切换） ——
+## 0 = 现状纯色矩形（对照基线）；1 = 边界柔化原型。
+## 柔化只作用于「因距离/角度不可见」的视野边界格：绘制时把格子切成 16px
+## 子格，用 _in_view()（纯几何：全向圆 + 视野锥）对子格中心做真实采样，
+## 让视野边缘从 64px 方块阶梯变成贴合真实圆弧/扇形的过渡——不是继承
+## 格状态的假细分。「因遮挡不可见」的格（格心在视野几何内却被墙挡）
+## 保持整格硬边：墙后不该被柔化看穿。判定逻辑 / 存档格式 / _cells 不变。
+@export var visual_mode := 0
+
 @export var cell_size := 64.0
 @export var map_size := Vector2(2400, 1600)
 ## 测试/脚本用视野方向覆盖：非 ZERO 时替代鼠标方向（headless 无鼠标）。
@@ -37,6 +46,21 @@ var _dirty := true
 var _accum := 0.0
 var _player: Node2D
 var _last_aim := Vector2.RIGHT  ## 上一有效视野方向（鼠标无效时保持）
+## —— 绘制层缓存：reveal_now 时记录的视野几何参数，_draw 柔化采样用。
+## 不在 _draw 里调 _aim_dir（它会读鼠标并改写 _last_aim，绘制必须无副作用）。
+var _last_ppos := Vector2.ZERO
+var _last_cos_half := 0.0
+var _has_view_cache := false
+## 调试测量：最近一次 _draw 耗时（微秒）。基准脚本 tools/bench_fog.gd 读取。
+var last_draw_usec := 0
+## 柔化绘制复用缓冲（_ready 预分配，避免每次 _draw 分配 Packed 数组）。
+var _soft_pts := PackedVector2Array()
+var _soft_cols := PackedColorArray()
+var _soft_uvs := PackedVector2Array()
+## 视野边界格标记（派生缓存，_update_border 维护，语义完全由 _cells 决定，
+## 不参与判定/存档）。**不要在 _draw 里现算 8 邻**：首版对每个非可见格
+## 调 8 次 cell_state（~6400 次 GDScript 调用）实测把 _draw 拖到 3.3ms。
+var _border := PackedByteArray()
 
 
 func _ready() -> void:
@@ -45,6 +69,9 @@ func _ready() -> void:
 	_cols = maxi(1, ceili(map_size.x / cell_size))
 	_rows = maxi(1, ceili(map_size.y / cell_size))
 	_cells.resize(_cols * _rows)
+	_border.resize(_cols * _rows)
+	_soft_pts.resize(4)
+	_soft_cols.resize(4)
 	_dirty = true
 
 
@@ -75,6 +102,10 @@ func reveal_now() -> void:
 	var ppos := _player.global_position
 	var aim := _aim_dir(ppos)
 	var cos_half := cos(deg_to_rad(cone_half_angle_deg))
+	_last_ppos = ppos
+	_last_aim = aim
+	_last_cos_half = cos_half
+	_has_view_cache = true
 	var cx := int(ppos.x / cell_size)
 	var cy := int(ppos.y / cell_size)
 	var span := int(ceil(cone_radius / cell_size)) + 1
@@ -90,7 +121,31 @@ func reveal_now() -> void:
 			var idx := gy * _cols + gx
 			if _cells[idx] < STATE_VISIBLE:
 				_cells[idx] = STATE_VISIBLE
+	if visual_mode == 1:
+		_update_border()
 	_dirty = true
+
+
+## 视野边界格标记：从每个可见格向 8 邻扩散标记非可见邻居。
+## 只遍历可见格（~200 个）向外的 8 邻，比"每个非可见格查 8 邻"便宜一个量级。
+func _update_border() -> void:
+	for i in _border.size():
+		_border[i] = 0
+	for gy in _rows:
+		for gx in _cols:
+			if _cells[gy * _cols + gx] != STATE_VISIBLE:
+				continue
+			for oy in range(-1, 2):
+				for ox in range(-1, 2):
+					if ox == 0 and oy == 0:
+						continue
+					var nx := gx + ox
+					var ny := gy + oy
+					if nx < 0 or ny < 0 or nx >= _cols or ny >= _rows:
+						continue
+					var ni := ny * _cols + nx
+					if _cells[ni] != STATE_VISIBLE:
+						_border[ni] = 1
 
 
 ## 视野方向：玩家指向鼠标；鼠标贴身/无效时保留上一有效方向（初始向右）。
@@ -194,6 +249,16 @@ func cell_state(gx: int, gy: int) -> int:
 
 
 func _draw() -> void:
+	var t0 := Time.get_ticks_usec()
+	if visual_mode == 1 and _has_view_cache:
+		_draw_soft()
+	else:
+		_draw_solid()
+	last_draw_usec = int(Time.get_ticks_usec() - t0)
+
+
+## 模式 0（对照基线）：纯色矩形，与柔化原型之前完全一致。
+func _draw_solid() -> void:
 	for gy in _rows:
 		for gx in _cols:
 			match _cells[gy * _cols + gx]:
@@ -205,6 +270,78 @@ func _draw() -> void:
 							Color(0.0, 0.0, 0.0, 0.45))
 				_:
 					pass  # 当前可见：不画
+
+
+## 模式 1（边界柔化原型）：只有「视野边界格」改变画法，其余与基线一致。
+func _draw_soft() -> void:
+	for gy in _rows:
+		for gx in _cols:
+			var st := _cells[gy * _cols + gx]
+			if st == STATE_VISIBLE:
+				continue
+			var solid_alpha := 0.97 if st == STATE_UNKNOWN else 0.45
+			if _border[gy * _cols + gx] == 1 \
+					and not _in_view(_cell_center(gx, gy), _last_ppos, _last_aim, _last_cos_half):
+				# 不可见原因是距离/角度（格心在视野几何外）→ 子格真实采样柔化。
+				# 若格心在视野几何内，说明是遮挡造成的不可见 → 保持整格硬边，
+				# 绝不柔化墙后（否则子采样会把墙后的格"点"出一半亮来）。
+				_draw_cell_soft(gx, gy, st, solid_alpha)
+			else:
+				var col := Color(0.02, 0.03, 0.04, solid_alpha) if st == STATE_UNKNOWN \
+						else Color(0.0, 0.0, 0.0, solid_alpha)
+				draw_rect(Rect2(gx * cell_size, gy * cell_size, cell_size, cell_size), col)
+
+
+func _cell_center(gx: int, gy: int) -> Vector2:
+	return Vector2((gx + 0.5) * cell_size, (gy + 0.5) * cell_size)
+
+
+## 边界格柔化：把格切成上下两个半格条带，各画一个四边形（draw_primitive），
+## 四个角点的 alpha 由视野几何（全向圆 + 视野锥）真实采样：
+##   角点在视野几何内 → 过渡 alpha（UNKNOWN 过渡到 0.45、EXPLORED 到 0.2）
+##   角点在视野几何外 → 该状态原有的整格 alpha
+## GPU 在三角形内对 alpha 插值 → 边界是连续渐变，不是方块阶梯；
+## 相邻格共享位置角点的采样值一致 → 跨格颜色连续。
+## 性能要点（首版实测教训）：① 视野判定数学**内联**在采样循环里——
+## GDScript 每次函数调用 ~1-3µs，560 次采样走函数就是 1.5ms+；
+## ② 顶点/颜色缓冲用成员数组复用（写索引原地改，不触发分配）；
+## ③ draw_primitive 画四边形不三角化、不开新命令，比 draw_polygon 便宜。
+func _draw_cell_soft(gx: int, gy: int, st: int, solid_alpha: float) -> void:
+	var soft_alpha := 0.2 if st == STATE_EXPLORED else 0.45
+	var cr := 0.02 if st == STATE_UNKNOWN else 0.0
+	var cg := 0.03 if st == STATE_UNKNOWN else 0.0
+	var cb := 0.04 if st == STATE_UNKNOWN else 0.0
+	var omni2 := omni_radius * omni_radius
+	var cone2 := cone_radius * cone_radius
+	var x0 := gx * cell_size
+	var x1 := x0 + cell_size
+	for band in 2:
+		var ya := gy * cell_size if band == 0 else gy * cell_size + cell_size * 0.5
+		var yb := gy * cell_size + cell_size * 0.5 if band == 0 else gy * cell_size + cell_size
+		_soft_pts[0] = Vector2(x0, ya)
+		_soft_pts[1] = Vector2(x1, ya)
+		_soft_pts[2] = Vector2(x1, yb)
+		_soft_pts[3] = Vector2(x0, yb)
+		for vi in 4:
+			var off: Vector2 = _soft_pts[vi] - _last_ppos
+			var d2 := off.length_squared()
+			var a := soft_alpha
+			if d2 > omni2:
+				# 全向圈外：锥外实雾；锥内再比角度（等价 _in_view，内联省调用）
+				if d2 > cone2 or off.dot(_last_aim) < _last_cos_half * sqrt(d2):
+					a = solid_alpha
+			_soft_cols[vi] = Color(cr, cg, cb, a)
+		draw_primitive(_soft_pts, _soft_cols, _soft_uvs)
+
+
+## F6：在「纯色基线 ↔ 柔化原型」之间切换（调试模式，原型验证用）。
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo \
+			and event.keycode == KEY_F6:
+		visual_mode = 1 - visual_mode
+		if visual_mode == 1:
+			_update_border()  # 切换时立即补算边界标记（上次 reveal 可能在模式 0）
+		queue_redraw()
 
 
 func _process(_delta: float) -> void:

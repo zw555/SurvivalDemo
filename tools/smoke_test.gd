@@ -1471,6 +1471,33 @@ func _run() -> void:
 			"车身覆盖的相邻格同样点亮（车头车尾连续可见）")
 	_check(fog.cell_state(4, 9) != FogOfWar.STATE_VISIBLE,
 			"遮挡物正后方的格仍不可见（车后照旧被挡，没有看穿）")
+	# 9) 迷雾视觉柔化原型（2026-10-15 原型批）：只改绘制层，数据/存档零变化
+	_check(fog.visual_mode == 0, "迷雾绘制默认模式 0（纯色基线，行为不变）")
+	player.global_position = Vector2(800, 700)
+	fog.aim_override = Vector2.RIGHT
+	await physics_frame
+	await physics_frame
+	fog.reveal_now()
+	var solid_cells: PackedByteArray = fog._cells.duplicate()
+	var solid_bits: String = fog.get_save_data()
+	fog.visual_mode = 1
+	fog.reveal_now()
+	var cells_same := solid_cells.size() == fog._cells.size()
+	if cells_same:
+		for i in solid_cells.size():
+			if solid_cells[i] != fog._cells[i]:
+				cells_same = false
+				break
+	_check(cells_same, "柔化模式不改变 _cells（判定层零变化，视野/遮挡完全一致）")
+	_check(solid_bits == fog.get_save_data(), "柔化模式不改变存档位串（旧档兼容）")
+	var f6 := InputEventKey.new()
+	f6.keycode = KEY_F6
+	f6.pressed = true
+	Input.parse_input_event(f6)
+	for i in 4:
+		await physics_frame
+	_check(fog.visual_mode == 0, "F6 实际按键可切换柔化模式（切一次回到 0）")
+	fog.aim_override = Vector2.ZERO
 	fog.set_physics_process(true)
 	fog.aim_override = Vector2.ZERO
 
