@@ -1457,6 +1457,20 @@ func _run() -> void:
 			if fog.cell_state(gx, gy) == FogOfWar.STATE_VISIBLE:
 				lit += 1
 	_check(lit >= 5, "家具夹缝处视野正常（5x5 内点亮 %d 格，修复前仅 1）" % lit)
+	# 8) 遮挡物自身所在的格应点亮（2026-10-15 第五批）：120×60 废弃车覆盖整格，
+	#    格心在车体内、射线在车近侧表面被截断 —— 旧模型把车身涂成整块黑；
+	#    新模型点亮物体自身覆盖的格（能看清车全貌），车后面仍不可见。
+	player.global_position = Vector2(300, 790)  # Car1 (300,700) 正下方 60px
+	fog.aim_override = Vector2.UP
+	await physics_frame
+	await physics_frame
+	fog.reveal_now()
+	_check(fog.cell_state(4, 10) == FogOfWar.STATE_VISIBLE,
+			"遮挡物自身所在的格点亮（车身格 (288,672) 在车体内，不再是黑块）")
+	_check(fog.cell_state(5, 10) == FogOfWar.STATE_VISIBLE,
+			"车身覆盖的相邻格同样点亮（车头车尾连续可见）")
+	_check(fog.cell_state(4, 9) != FogOfWar.STATE_VISIBLE,
+			"遮挡物正后方的格仍不可见（车后照旧被挡，没有看穿）")
 	fog.set_physics_process(true)
 	fog.aim_override = Vector2.ZERO
 

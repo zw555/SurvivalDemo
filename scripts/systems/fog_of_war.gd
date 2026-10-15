@@ -83,7 +83,9 @@ func reveal_now() -> void:
 			var center := Vector2((gx + 0.5) * cell_size, (gy + 0.5) * cell_size)
 			if not _in_view(center, ppos, aim, cos_half):
 				continue
-			if not _line_clear(ppos, center) and not _sub_points_clear(ppos, center):
+			if not _line_clear(ppos, center) \
+					and not _point_in_occluder(center) \
+					and not _sub_points_clear(ppos, center):
 				continue
 			var idx := gy * _cols + gx
 			if _cells[idx] < STATE_VISIBLE:
@@ -121,6 +123,19 @@ func _line_clear(from: Vector2, to: Vector2) -> bool:
 	var space := _player.get_world_2d().direct_space_state
 	var query := PhysicsRayQueryParameters2D.create(from, to, SIGHT_MASK, [_player.get_rid()])
 	return space.intersect_ray(query).is_empty()
+
+
+## 格心是否落在视线遮挡物内部（2026-10-15 第五批：遮挡物自身所在的格应点亮）。
+## 大件遮挡物（120×60 废弃车）覆盖整格：格心在车体内、射线在车的近侧表面
+## 就被截断，旧模型把车身涂成整块黑——美术资源上线后会盖掉车轮车漆细节。
+## 正确模型：物体本身可见（点亮它覆盖的格），只有它**后面**的格看不到——
+## 后方格子的格心在物体外，射线照样被挡，不会"看穿"。
+func _point_in_occluder(point: Vector2) -> bool:
+	var space := _player.get_world_2d().direct_space_state
+	var query := PhysicsPointQueryParameters2D.new()
+	query.position = point
+	query.collision_mask = SIGHT_MASK
+	return not space.intersect_point(query).is_empty()
 
 
 ## 格内子点采样：格心被挡时，在格内四角（±20px）补测，任意一点通视即算可见。
