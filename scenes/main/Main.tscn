@@ -793,7 +793,7 @@ polygon = PackedVector2Array(-11, -11, 11, -11, 11, 11, -11, 11)
 [node name="MilCabinet" parent="MilitaryBase" instance=ExtResource("30_shelf")]
 position = Vector2(1240, 180)
 display_name = "军需柜"
-starting_items = Array[ExtResource("31_iscript")]([ExtResource("54_ammo9"), ExtResource("55_ammor"), ExtResource("49_firstaid"), ExtResource("32_canned"), ExtResource("32_canned"), ExtResource("52_grenade"), ExtResource("52_grenade")])
+starting_items = Array[ExtResource("31_iscript")]([ExtResource("49_firstaid"), ExtResource("32_canned"), ExtResource("32_canned"), ExtResource("32_canned"), ExtResource("52_grenade"), ExtResource("52_grenade")])
 
 [node name="FuelDrum1" parent="MilitaryBase" instance=ExtResource("30_shelf")]
 position = Vector2(1160, 452)
@@ -1570,7 +1570,7 @@ script = ExtResource("14_sp")
 zombie_count = 1
 variants = [null, ExtResource("19_runner")]
 variant_weights = [80.0, 20.0]
-pickup_rolls = 3
+pickup_rolls = 0
 pickup_table = ExtResource("15_poor")
 
 [node name="Suburb2" type="Marker2D" parent="SpawnPoints"]
@@ -1579,14 +1579,14 @@ script = ExtResource("14_sp")
 zombie_count = 1
 variants = [null, ExtResource("19_runner")]
 variant_weights = [80.0, 20.0]
-pickup_rolls = 3
+pickup_rolls = 0
 pickup_table = ExtResource("15_poor")
 
 [node name="Suburb3" type="Marker2D" parent="SpawnPoints"]
 position = Vector2(1100, 1350)
 script = ExtResource("14_sp")
 zombie_count = 0
-pickup_rolls = 2
+pickup_rolls = 0
 pickup_table = ExtResource("15_poor")
 
 [node name="City1" type="Marker2D" parent="SpawnPoints"]
@@ -1595,7 +1595,7 @@ script = ExtResource("14_sp")
 zombie_count = 2
 variants = [null, ExtResource("19_runner"), ExtResource("20_tank")]
 variant_weights = [50.0, 30.0, 20.0]
-pickup_rolls = 3
+pickup_rolls = 0
 pickup_table = ExtResource("16_rich")
 
 [node name="City2" type="Marker2D" parent="SpawnPoints"]
@@ -1604,7 +1604,7 @@ script = ExtResource("14_sp")
 zombie_count = 2
 variants = [null, ExtResource("19_runner"), ExtResource("20_tank")]
 variant_weights = [50.0, 30.0, 20.0]
-pickup_rolls = 3
+pickup_rolls = 0
 pickup_table = ExtResource("16_rich")
 
 [node name="City3" type="Marker2D" parent="SpawnPoints"]
@@ -1613,7 +1613,7 @@ script = ExtResource("14_sp")
 zombie_count = 2
 variants = [null, ExtResource("19_runner"), ExtResource("20_tank")]
 variant_weights = [50.0, 30.0, 20.0]
-pickup_rolls = 2
+pickup_rolls = 0
 pickup_table = ExtResource("16_rich")
 
 [node name="MarketGuard" type="Marker2D" parent="SpawnPoints"]

@@ -1,10 +1,6 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/storage_box.gd" id="1_box"]
-[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="2_item"]
-[ext_resource type="Resource" path="res://data/items/food_rice.tres" id="3_rice"]
-[ext_resource type="Resource" path="res://data/items/food_flour.tres" id="4_flour"]
-[ext_resource type="Resource" path="res://data/items/bottle_plastic.tres" id="5_bottle"]
 [ext_resource type="Script" path="res://scripts/ui/fog_label.gd" id="99_foglbl"]
 
 [sub_resource type="RectangleShape2D" id="CabinetInteract"]
@@ -19,7 +15,6 @@ display_name = "厨房柜子"
 open_prompt = "翻找柜子"
 close_prompt = "关闭柜子"
 capacity = 6
-starting_items = Array[ExtResource("2_item")]([ExtResource("3_rice"), ExtResource("4_flour"), ExtResource("5_bottle")])
 
 [node name="Shape" type="CollisionShape2D" parent="."]
 shape = SubResource("CabinetInteract")

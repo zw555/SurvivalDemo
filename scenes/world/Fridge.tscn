@@ -1,12 +1,6 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/storage_box.gd" id="1_box"]
-[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="2_item"]
-[ext_resource type="Resource" path="res://data/items/food_meat.tres" id="3_meat"]
-[ext_resource type="Resource" path="res://data/items/food_milk.tres" id="4_milk"]
-[ext_resource type="Resource" path="res://data/items/food_egg.tres" id="5_egg"]
-[ext_resource type="Resource" path="res://data/items/food_dumpling.tres" id="6_dumpling"]
-[ext_resource type="Resource" path="res://data/items/water_bottle.tres" id="7_water"]
 [ext_resource type="Script" path="res://scripts/ui/fog_label.gd" id="99_foglbl"]
 
 [sub_resource type="RectangleShape2D" id="FridgeInteract"]
@@ -21,7 +15,6 @@ display_name = "冰箱"
 open_prompt = "打开冰箱"
 close_prompt = "关闭冰箱"
 capacity = 8
-starting_items = Array[ExtResource("2_item")]([ExtResource("3_meat"), ExtResource("4_milk"), ExtResource("5_egg"), ExtResource("6_dumpling"), ExtResource("7_water")])
 
 [node name="Shape" type="CollisionShape2D" parent="."]
 shape = SubResource("FridgeInteract")

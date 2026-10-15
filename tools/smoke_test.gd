@@ -38,7 +38,7 @@ func _run() -> void:
 	_check(player.inventory.capacity == 8, "玩家初始背包 8 格")
 	_check(player.health == 100.0, "玩家初始血量 100")
 	_check(get_nodes_in_group("zombies").size() > 0, "生成系统刷出了僵尸")
-	_check(get_nodes_in_group("pickups").size() > 0, "生成系统刷出了散落物资")
+	_check(get_nodes_in_group("pickups").is_empty(), "室外无散落物资（搜刮只在建筑内）")
 	_check(get_nodes_in_group("containers").size() > 0, "生成系统刷出了物资箱")
 
 	var loot_table: LootTable = load("res://data/loot/rich_table.tres")
@@ -75,7 +75,12 @@ func _run() -> void:
 			variant_stats_ok = false
 	_check(variant_stats_ok, "场上变体僵尸的参数与配置一致")
 
-	var food_pickup := get_first_node_in_group("pickups") as Interactable
+	# 室外已无散落物资：自建一个地上物品，专门测拾取交互本身
+	var pickup_scene := load("res://scenes/items/ItemPickup.tscn") as PackedScene
+	var food_pickup: Node2D = pickup_scene.instantiate()
+	food_pickup.item = load("res://data/items/food_canned.tres") as ItemData
+	main.add_child(food_pickup)
+	food_pickup.global_position = player.global_position + Vector2(40, 0)
 	var inv_before_pickup := player.inventory.item_count()
 	player.global_position = food_pickup.global_position
 	for i in 8:
@@ -281,8 +286,8 @@ func _run() -> void:
 	var fridge: ContainerBase = main.get_node("Fridge")
 	var cabinet: ContainerBase = main.get_node("KitchenCabinet")
 	_check(wardrobe.storage.item_count() == 4, "衣柜里放着四件衣物")
-	_check(fridge.storage.item_count() >= 4, "冰箱存有食物")
-	_check(cabinet.storage.item_count() >= 3, "厨房柜子有食材和塑料瓶")
+	_check(fridge.storage.item_count() == 0, "安全屋冰箱不存粮（必须出门搜刮）")
+	_check(cabinet.storage.item_count() == 0, "安全屋厨房柜不存粮（必须出门搜刮）")
 	player.global_position = wardrobe.global_position + Vector2(0, 50)
 	for i in 3:
 		await physics_frame
@@ -752,6 +757,45 @@ func _run() -> void:
 	thoughts.evaluate()
 	_check(thoughts.trigger_count("hp_low") == 1, "生命值低触发「得找药」")
 	player.health = health_backup
+
+	# —— 物资分布：室外无散落、安全屋无粮、超市有食物、弹药只在警局 ——
+	var sp_root: Node2D = main.get_node("SpawnPoints")
+	var outdoor_has_loot := false
+	for spawn_node in sp_root.get_children():
+		if spawn_node is SpawnPoint and spawn_node.pickup_rolls != 0:
+			outdoor_has_loot = true
+	_check(not outdoor_has_loot, "所有生成点无室外散落物资（搜刮只在建筑内）")
+	var fridge_camp := main.get_node("Fridge") as ContainerBase
+	var cabinet_camp := main.get_node("KitchenCabinet") as ContainerBase
+	_check(fridge_camp != null and fridge_camp.storage.item_count() == 0, "安全屋冰箱已清空")
+	_check(cabinet_camp != null and cabinet_camp.storage.item_count() == 0, "安全屋厨房柜已清空")
+	var market_food := 0
+	var market_node: Node2D = main.get_node("Market")
+	for node in get_nodes_in_group("containers"):
+		var shelf := node as ContainerBase
+		if shelf != null and shelf.get_parent() == market_node:
+			for item in shelf.storage.slots:
+				if item != null and (item.kind == ItemData.KIND_FOOD \
+						or item.kind == ItemData.KIND_WATER):
+					market_food += 1
+	_check(market_food >= 5, "超市货架仍有充足食物与水")
+	var ammo_outside_police := 0
+	for node in get_nodes_in_group("containers"):
+		var loot_box := node as ContainerBase
+		if loot_box == null or loot_box.get_parent() == null:
+			continue
+		var in_police := false
+		var ancestor: Node = loot_box.get_parent()
+		while ancestor != null:
+			if ancestor.name == "PoliceStation":
+				in_police = true
+				break
+			ancestor = ancestor.get_parent()
+		if not in_police:
+			for item in loot_box.storage.slots:
+				if item != null and item.kind == ItemData.KIND_AMMO:
+					ammo_outside_police += 1
+	_check(ammo_outside_police == 0, "弹药只从警局获得（其他建筑与掉落表不产弹药）")
 
 	# 军事基地与撤离任务：汽油、建筑物资、守卫、任务链四阶段与结局
 	var military: Node2D = main.get_node("MilitaryBase")
