@@ -44,7 +44,15 @@
 ## 已知事项
 - 项目根目录曾出现一个 0 字节的 `新建 文本文档.txt`（2026-09-28 13:28），来源不明，未处理。
 
+## 2026-10-15 平衡基线（本轮第一批，383 测试）
+- **撤离清单**：食物4/水4/汽油2/医疗2/弹药1（13件>8格，弹药只从警局、汽油只从军营）；**消耗×3**：食物0.3/s、水0.5/s；**带伤开局**65/54/50；室外无散落物资、安全屋不存粮；固定小背包×2（超市+五金店）
+- **武器四级 tier**（ItemData.tier，0=不分级）：1破烂/2普通/3精良/4稀有，伤害一个没动；显示名 display_name_tiered() 带后缀
+- **守卫**：超市5（卖场3+冷藏2）/警局4/医院4/五金3/军营6；分布拆点间距≥100px
+- **UI**：背包栏不再常驻，Tab = GearPanel（人体轮廓 7 槽 BODY_SLOT_LAYOUT + 56px 背包格 + 属性条）；拾取武器提示按 DPS 对比
+- **待实测反馈**：通关时长/消耗/每楼搜刮 6-8 分钟/卡死/肠胃×1.5 叠加是否过重
+
 ## 引擎 API 备忘（4.5.2 实测）
+- **tscn 文件不支持 `#` 注释行**：插在 node 块里会被静默忽略属性（不报错）——tscn 一律不写注释。
 - **导航烘焙**：`NavigationPolygon` 已无 source_geometry_mode/source_group_name，走 `NavigationServer2D.parse_source_geometry_data(poly, data, root_node)` + `bake_from_source_geometry_data`；**parse 会清空 data，可通行外轮廓要在 parse 之后 `data.add_traversable_outline(...)`**，否则烘焙 0 多边形。
 - **class_name 不能与原生类重名**（如 Noise/Theme/Range），解析器会报 "hides a native class"。
 - 物理层约定（2026-10-14 更新）：layer1（值1）= 实体碰撞；layer2（值2）= 丧尸视线遮挡（墙+家具+门，丧尸射线 mask=2）；layer3（值4）= **玩家视线遮挡（仅墙/地图边界/建筑墙/门，fog mask=4）**——家具不挡玩家视野；窗户仅 layer1（挡移动不挡任何视线）。墙/门改碰撞层时勿漏 Main.tscn 10 处 + Door.tscn。
