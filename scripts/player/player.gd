@@ -36,11 +36,12 @@ const EQUIP_SLOTS: Array[String] = [
 @export var attack_cooldown := 0.45
 @export var max_food := 100.0
 @export var max_water := 100.0
-## 消耗速率按"一天 600 秒（现实 10 分钟）"折算：食物 180/天、水 300/天（×3 压力档）。
-## 满状态 100 只够撑 333 秒 ≈ 一次出门时长：出门前必须算"带几个罐头"。
-## 缺水比缺粮更急（现实里人不喝水死得更快），水是每天的主要补给压力。
+## 消耗速率按"一天 600 秒（现实 10 分钟）"折算：食物 180/天（×3）、水 210/天（×2）。
+## 水耗配平（2026-10-15 第二批）：全图水当量 240，×3 时只撑 0.8 天撑不起多楼清单，
+## 降到 0.35/s（210/天 ≈ 1.1 天）——紧但可行，超市仍是必回的主水源。
+## 缺水仍比缺粮更急（210 > 180），但叠加肠胃病 ×1.5 后是 0.525/s（撑 3.2 分钟），可接受。
 @export var food_drain_per_sec := 0.3
-@export var water_drain_per_sec := 0.5
+@export var water_drain_per_sec := 0.35
 @export var starvation_damage_per_sec := 2.0
 @export var thirst_damage_per_sec := 3.0
 @export var base_slot_count := 8

@@ -40,8 +40,8 @@ func _run() -> void:
 	_check(absf(player.food - 54.0) < 1.0, "初始饱食度 54（3 分钟量）")
 	_check(absf(player.water - 50.0) < 5.0 and player.water < player.food,
 			"初始饮水 50 比饱食更紧")
-	_check(player.food_drain_per_sec == 0.3 and player.water_drain_per_sec == 0.5,
-			"消耗速率 ×3（食物 0.3 / 水 0.5 每秒）")
+	_check(player.food_drain_per_sec == 0.3 and player.water_drain_per_sec == 0.35,
+			"消耗速率：食物 ×3（0.3/s）、水 ×2 配平（0.35/s，全图 240 当量 ≈ 1.1 天）")
 
 	# —— 武器分级：tier 数据、伤害回归保护、初始木棒 ——
 	var expected_tiers := {
