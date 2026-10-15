@@ -675,6 +675,14 @@ func _run() -> void:
 	var hud_gear: Hud = main.get_node("HUD")
 	var gear_panel: PanelContainer = main.get_node("HUD/Root/GearPanel")
 	_check(gear_panel != null and not gear_panel.visible, "Tab 装备面板初始隐藏")
+	# —— 面板亮度（2026-10-15 第三批）：明显亮于未探索迷雾，一眼区分面板与背景 ——
+	var gear_style := gear_panel.get_theme_stylebox("panel") as StyleBoxFlat
+	_check(gear_style != null and gear_style.bg_color.get_luminance() > 0.1,
+			"Tab 面板底色亮度 > 0.1（未探索迷雾 ≈ 0.03，不再融进背景）")
+	var empty_btn: Button = hud_gear._body_slots[ItemData.SLOT_HEAD]
+	var empty_style := empty_btn.get_theme_stylebox("normal") as StyleBoxFlat
+	_check(empty_style != null and empty_style.bg_color.get_luminance() > gear_style.bg_color.get_luminance(),
+			"槽位底板比面板更亮（物品色块与面板分界清晰）")
 	var inv_parent: Node = hud_gear._inventory_grid.get_parent()
 	while inv_parent != null and inv_parent.name != "GearPanel":
 		inv_parent = inv_parent.get_parent()
@@ -1106,9 +1114,15 @@ func _run() -> void:
 	_check(fog != null and fog.col_count() > 0, "迷雾系统挂载且网格已生成")
 	_check(fog.is_explored(player.global_position), "玩家所在区域已被揭开")
 	_check(not fog.is_explored(Vector2(2300, 200)), "地图东北角仍是未知区域")
-	fog.reveal_area(Vector2(2300, 200), 220.0)
-	_check(fog.is_explored(Vector2(2300, 200)), "情报照亮能揭开远处区域")
+	# —— 视野参数（2026-10-15 第三批）：消除"玩家视野小于丧尸"的死亡盲区 ——
+	_check(fog.omni_radius >= 180.0, "全向视野 ≥180px（覆盖丧尸贴身威胁圈，不再被近身锁定才看见）")
+	_check(fog.cone_radius > 260.0, "锥形视野 %dpx > 丧尸 detect_radius 260（看得比它远才有绕开空间）" % int(fog.cone_radius))
+	_check(fog.cone_half_angle_deg >= 75.0, "视野锥半角 ≥75°（150° 总视野，横向逃跑跟随更跟手）")
 	_check(int(main.map_markers["military"]) >= 1, "收音机广播解锁军营地图标记")
+	# —— 情报只标记不揭雾（2026-10-15 第三批）：读电台后军营仍是黑的，里面有什么进门才知道 ——
+	_check(not fog.is_explored(Vector2(1280, 330)), "情报解锁不揭迷雾（军营区域仍未知，不是免费远程侦察）")
+	fog.reveal_area(Vector2(1280, 330), 220.0)
+	_check(fog.is_explored(Vector2(1280, 330)), "reveal_area API 仍可脚本揭雾（能力保留）")
 	_check(int(main.map_markers["camp"]) == 2, "安全屋开局即为已探索")
 	main.map_markers["police"] = 0
 	player.global_position = Vector2(1400, 700)

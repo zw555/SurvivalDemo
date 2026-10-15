@@ -31,12 +31,12 @@ corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
 
 [sub_resource type="StyleBoxFlat" id="GearPanelStyle"]
-bg_color = Color(0.07, 0.08, 0.07, 1)
+bg_color = Color(0.14, 0.15, 0.14, 0.96)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.5, 0.55, 0.45, 0.8)
+border_color = Color(0.62, 0.68, 0.55, 0.95)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8

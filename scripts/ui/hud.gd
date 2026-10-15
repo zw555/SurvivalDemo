@@ -685,23 +685,36 @@ func _refresh_equipment() -> void:
 		else:
 			button.text = info.tag
 			button.tooltip_text = "%s（空）" % info.tag
-			button.remove_theme_stylebox_override("normal")
-			button.remove_theme_stylebox_override("hover")
+			_style_slot_empty(button)
 	_gear_stats.text = "攻击 %d · 护甲 %d · 移速 +%.0f%%" \
 			% [_player.current_damage(), _player.total_defense(), _player.speed_bonus_pct()]
 
 
 ## 槽位分级边框：灰/绿/蓝/金（与背包格一致，余光可辨等级）。
+## 底色比面板（0.14）稍亮 + 深色内衬描边，物品色块与面板背景分界清晰
+## （2026-10-15 第三批：面板提亮后防止"物品融进面板"）。
 func _style_slot_tier(button: Button, item: ItemData) -> void:
+	var border := StyleBoxFlat.new()
+	border.bg_color = Color(0.2, 0.21, 0.2)
 	if item.tier >= 1 and ItemData.TIER_COLORS.has(item.tier):
-		var border := StyleBoxFlat.new()
 		border.border_color = ItemData.TIER_COLORS[item.tier]
-		border.set_border_width_all(2)
-		button.add_theme_stylebox_override("normal", border)
-		button.add_theme_stylebox_override("hover", border)
 	else:
-		button.remove_theme_stylebox_override("normal")
-		button.remove_theme_stylebox_override("hover")
+		border.border_color = Color(0.4, 0.43, 0.38)
+	border.set_border_width_all(2)
+	border.set_corner_radius_all(4)
+	button.add_theme_stylebox_override("normal", border)
+	button.add_theme_stylebox_override("hover", border)
+
+
+## 空槽底板：比面板稍亮的底色 + 暗描边，槽位轮廓一眼可辨。
+func _style_slot_empty(button: Button) -> void:
+	var border := StyleBoxFlat.new()
+	border.bg_color = Color(0.18, 0.19, 0.18)
+	border.border_color = Color(0.35, 0.38, 0.33)
+	border.set_border_width_all(1)
+	border.set_corner_radius_all(4)
+	button.add_theme_stylebox_override("normal", border)
+	button.add_theme_stylebox_override("hover", border)
 
 
 func _on_equip_slot_pressed(slot: String) -> void:
@@ -806,6 +819,14 @@ func _add_color_chip(button: Button, color: Color) -> void:
 	chip.set_anchors_preset(Control.PRESET_LEFT_WIDE)
 	chip.offset_left = 4
 	chip.offset_right = 10
+	# 1px 深色描边：浅色面板上物品色块边界清晰（2026-10-15 第三批）。
+	var outline := ReferenceRect.new()
+	outline.border_color = Color(0.05, 0.06, 0.05, 0.9)
+	outline.border_width = 1.0
+	outline.editor_only = false
+	outline.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	outline.set_anchors_preset(Control.PRESET_FULL_RECT)
+	chip.add_child(outline)
 	button.add_child(chip)
 
 

@@ -217,14 +217,16 @@ func _update_map_markers() -> void:
 			_hud.show_message("探索了「%s」" % b.name)
 
 
-## 情报解锁（收音机/纸条）：把未知地点标为已发现，并在迷雾上照亮一小片。
+## 情报解锁（收音机/纸条）：把未知地点标为已发现（M 键地图出现标记）。
+## **不揭迷雾**（2026-10-15 第三批）：揭雾会把整片区域永久置为「已探索」
+## （alpha 0.45），等于免费远程侦察建筑内丧尸，摧毁进门前的未知感——
+## 情报的价值回归"知道该去哪"，里面有什么仍是进门才知道。
 func discover_marker(id: String) -> void:
 	if int(map_markers.get(id, MARKER_UNKNOWN)) != MARKER_UNKNOWN:
 		return
 	map_markers[id] = MARKER_FOUND
 	for b in MAP_BUILDINGS:
 		if b.id == id:
-			_fog.reveal_area((b.rect as Rect2).get_center(), 320.0)
 			_hud.show_message("地图上标记了「%s」——按 M 查看" % b.name)
 			return
 
