@@ -15,6 +15,10 @@ run/main_scene="res://scenes/main/Main.tscn"
 config/features=PackedStringArray("4.5", "GL Compatibility")
 config/icon="res://icon.svg"
 
+[gui]
+
+theme/custom_font_size=18
+
 [input]
 
 move_left={
@@ -77,11 +81,6 @@ sprint={
 "events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":4194325,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
 ]
 }
-
-[gui]
-
-## 全局默认字号 16→18（2026-10-15 第四批 UI 放大）：未显式 override 的按钮/标签随之放大。
-theme/custom_font_size=18
 
 [rendering]
 
