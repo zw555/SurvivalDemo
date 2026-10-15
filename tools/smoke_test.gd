@@ -711,6 +711,32 @@ func _run() -> void:
 		player.use_item(player.inventory.slots.find(chest_before))
 	hud_gear._toggle_gear_panel()
 	_check(not gear_panel.visible, "再按 Tab 关闭面板（屏幕无面板残留）")
+	# —— UI 放大（2026-10-15 第四批）：格 64px / 人体槽 ×1.25 / 全局字号 18 ——
+	_check(Hud.SLOT_SIZE == Vector2(64, 64), "背包格放大到 64px（原 56）")
+	var chest_info: Dictionary = Hud.BODY_SLOT_LAYOUT[ItemData.SLOT_CHEST]
+	_check((chest_info.size as Vector2).x >= 110, "人体轮廓槽位放大（衣服宽 ≥110，原 88）")
+	var cam: Camera2D = player.get_node("Camera2D")
+	_check(cam.zoom.is_equal_approx(Vector2(0.8, 0.8)), "相机缩放 0.8（屏幕可见世界 1152→1440px，城区穿行感）")
+	# —— 容器并入 Tab（第四批）：左装备+背包 / 右箱子，任务追踪避让 ——
+	var storage_box: VBoxContainer = main.get_node("HUD/Root/GearPanel/GearBox/GearBody/StorageBox")
+	var tracker: PanelContainer = main.get_node("HUD/Root/QuestTrackerPanel")
+	var camp2: ContainerBase = main.get_node("CampArea")
+	_check(not storage_box.visible, "未开容器时 Tab 面板无箱子区（纯装备布局）")
+	_check(tracker.visible, "面板关闭时任务追踪正常显示")
+	hud_gear._toggle_gear_panel()  # Tab 打开（装备模式）
+	_check(gear_panel.visible and not tracker.visible, "Tab 打开时任务追踪自动避让（不再遮挡面板）")
+	camp2.set_open(true)
+	_check(gear_panel.visible and storage_box.visible, "开容器后面板切为容器模式（左装备+背包 / 右箱子，不再独立面板）")
+	camp2.set_open(false)
+	_check(gear_panel.visible and not storage_box.visible, "关容器后回到纯装备布局（Tab 先开的面板保持显示）")
+	_check(not tracker.visible, "面板仍开着，追踪保持避让")
+	hud_gear._toggle_gear_panel()  # 关面板
+	_check(not gear_panel.visible and tracker.visible, "面板关闭后任务追踪恢复显示")
+	camp2.set_open(true)
+	_check(gear_panel.visible and storage_box.visible, "Tab 没开时开容器 → 面板以容器模式出现")
+	camp2.set_open(false)
+	_check(not gear_panel.visible and tracker.visible,
+			"开箱才出现的面板随关箱整体关闭（屏幕不留常驻面板），追踪恢复")
 	# 拾取对比提示：同时看伤害与冷却（DPS），不只按伤害排序
 	var saber_cmp: ItemData = load("res://data/items/weapon_army_saber.tres")
 	var club_hint: ItemData = load("res://data/items/weapon_wood_club.tres")

@@ -18,6 +18,7 @@ color = Color(0.35, 0.62, 0.95, 1)
 polygon = PackedVector2Array(-12, -12, 12, -12, 12, 12, -12, 12)
 
 [node name="Camera2D" type="Camera2D" parent="."]
+zoom = Vector2(0.8, 0.8)
 position_smoothing_enabled = true
 position_smoothing_speed = 8.0
 script = ExtResource("2_cam")

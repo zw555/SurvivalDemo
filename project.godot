@@ -78,6 +78,11 @@ sprint={
 ]
 }
 
+[gui]
+
+## 全局默认字号 16→18（2026-10-15 第四批 UI 放大）：未显式 override 的按钮/标签随之放大。
+theme/custom_font_size=18
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"

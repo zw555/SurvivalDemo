@@ -2,7 +2,7 @@ class_name Hud
 extends CanvasLayer
 ## 生存 HUD：状态条、Tab 装备+背包面板、容器面板（营地仓库/箱子）与提示信息。
 
-const SLOT_SIZE := Vector2(56, 56)
+const SLOT_SIZE := Vector2(64, 64)
 
 @onready var _health_bar: ProgressBar = $Root/Bars/HealthBar
 @onready var _health_text: Label = $Root/Bars/HealthBar/HealthText
@@ -22,9 +22,9 @@ const SLOT_SIZE := Vector2(56, 56)
 @onready var _equip_label: Label = $Root/EquipLabel
 @onready var _message_label: Label = $Root/MessageLabel
 @onready var _inventory_grid: GridContainer = $Root/GearPanel/GearBox/GearBody/InvBox/InventoryScroll/InventoryGrid
-@onready var _storage_panel: PanelContainer = $Root/StoragePanel
-@onready var _storage_title: Label = $Root/StoragePanel/StorageBox/StorageTitle
-@onready var _storage_grid: GridContainer = $Root/StoragePanel/StorageBox/StorageGrid
+@onready var _storage_box: VBoxContainer = $Root/GearPanel/GearBox/GearBody/StorageBox
+@onready var _storage_title: Label = $Root/GearPanel/GearBox/GearBody/StorageBox/StorageTitle
+@onready var _storage_grid: GridContainer = $Root/GearPanel/GearBox/GearBody/StorageBox/StorageScroll/StorageGrid
 @onready var _prompt_label: Label = $Root/PromptLabel
 @onready var _day_label: Label = $Root/DayLabel
 @onready var _gear_panel: PanelContainer = $Root/GearPanel
@@ -83,6 +83,8 @@ var _day_night: DayNight
 var _message_time := 0.0
 var _thought_time := 0.0
 var _equip_visible := false
+## 容器模式标志：面板是开箱才出现的（关箱应整体关闭）还是 Tab 先开着。
+var _gear_opened_by_container := false
 var _menu_open := false
 ## 玩家点了"交付物资"；由 main.gd（任务状态机）裁决。
 signal npc_deliver_pressed
@@ -228,16 +230,26 @@ func attach_map(fog: FogOfWar, buildings: Array, markers: Dictionary, player: No
 	_map_canvas.player = player
 
 
-## Tab 装备+背包面板：开关即互斥面板——打开时关掉容器/地图，屏幕不留常驻背包。
+## Tab 装备+背包面板：开关即互斥面板——打开时关掉地图，屏幕不留常驻背包。
+## 容器打开时同面板切换为「左装备+背包 / 右箱子」容器模式（2026-10-15 第四批），
+## 任务追踪面板在 GearPanel 显示期间隐藏避让。
 func _toggle_gear_panel() -> void:
 	_equip_visible = not _equip_visible
-	_gear_panel.visible = _equip_visible
+	_set_gear_panel_visible(_equip_visible)
 	if _equip_visible:
-		if _container != null and _container.open:
-			_container.set_open(false)  # 与容器面板互斥
 		_close_map_if_open()
 		_refresh_equipment()
 		_refresh_inventory()
+		_storage_box.visible = _container != null and _container.open
+		_refresh_storage()
+	elif _container != null and _container.open:
+		_container.set_open(false)  # Tab 关掉 = 容器模式无处显示，随面板一起关
+
+
+## GearPanel 显隐统一入口：同时处理任务追踪避让。
+func _set_gear_panel_visible(shown: bool) -> void:
+	_gear_panel.visible = shown
+	_quest_tracker_panel.visible = not shown  # 面板居中放大，追踪卡避让不遮挡
 
 
 ## M 键地图：打开时刷新一帧绘制；与容器/沙发/制作/NPC 面板互斥。
@@ -279,7 +291,8 @@ func _refresh_quest_tracker(_changed_id: String = "") -> void:
 		child.queue_free()
 	var snapshot: Array = _quests.tracked_snapshot() if _quests != null else []
 	_quest_tracker_empty.visible = snapshot.is_empty()
-	_quest_tracker_panel.visible = true
+	# GearPanel 显示期间（装备/容器模式）追踪卡避让；面板关着时正常显示
+	_quest_tracker_panel.visible = not _gear_panel.visible
 	for entry in snapshot:
 		var card := VBoxContainer.new()
 		card.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -287,7 +300,7 @@ func _refresh_quest_tracker(_changed_id: String = "") -> void:
 		var title := Label.new()
 		title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		title.text = "◆ %s（%d/%d）" % [entry.title, entry.done, entry.total]
-		title.add_theme_font_size_override("font_size", 12)
+		title.add_theme_font_size_override("font_size", 14)
 		title.add_theme_color_override("font_color", Color(0.95, 0.9, 0.7))
 		card.add_child(title)
 		var obj := Label.new()
@@ -296,7 +309,7 @@ func _refresh_quest_tracker(_changed_id: String = "") -> void:
 		obj.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		obj.custom_minimum_size = Vector2(240, 0)
 		obj.max_lines_visible = 2
-		obj.add_theme_font_size_override("font_size", 11)
+		obj.add_theme_font_size_override("font_size", 15)
 		obj.add_theme_color_override("font_color", Color(0.85, 0.85, 0.8))
 		card.add_child(obj)
 		_quest_tracker_list.add_child(card)
@@ -324,7 +337,7 @@ func _refresh_quest_panel() -> void:
 	if snapshot.is_empty():
 		var empty := Label.new()
 		empty.text = "还没有任务。听听收音机的广播吧。"
-		empty.add_theme_font_size_override("font_size", 12)
+		empty.add_theme_font_size_override("font_size", 14)
 		_quest_panel_list.add_child(empty)
 		return
 	for entry in snapshot:
@@ -334,7 +347,7 @@ func _refresh_quest_panel() -> void:
 		var title := Label.new()
 		title.text = str(entry.title) + ("（已完成）" if entry.completed else "")
 		title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		title.add_theme_font_size_override("font_size", 13)
+		title.add_theme_font_size_override("font_size", 15)
 		title.add_theme_color_override("font_color", Color(0.9, 0.95, 0.85))
 		head.add_child(title)
 		var toggle := Button.new()
@@ -347,7 +360,7 @@ func _refresh_quest_panel() -> void:
 			var line := Label.new()
 			line.text = ("  ✓ " if obj.done else "  · ") + str(obj.text)
 			line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			line.add_theme_font_size_override("font_size", 12)
+			line.add_theme_font_size_override("font_size", 14)
 			line.add_theme_color_override("font_color",
 					Color(0.6, 0.8, 0.6) if obj.done else Color(0.8, 0.8, 0.75))
 			box.add_child(line)
@@ -388,7 +401,7 @@ func _refresh_health_panel() -> void:
 	if lines.is_empty():
 		var ok := Label.new()
 		ok.text = "身体状态良好，没有伤势或疾病。"
-		ok.add_theme_font_size_override("font_size", 12)
+		ok.add_theme_font_size_override("font_size", 14)
 		ok.add_theme_color_override("font_color", Color(0.7, 0.85, 0.7))
 		_health_list.add_child(ok)
 		return
@@ -396,7 +409,7 @@ func _refresh_health_panel() -> void:
 		var row := Label.new()
 		row.text = "◆ " + str(line_text)
 		row.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		row.add_theme_font_size_override("font_size", 12)
+		row.add_theme_font_size_override("font_size", 14)
 		var danger := str(line_text).contains("！") or str(line_text).contains("危险")
 		row.add_theme_color_override("font_color",
 				Color(0.95, 0.55, 0.45) if danger else Color(0.9, 0.85, 0.7))
@@ -576,7 +589,9 @@ func _on_sleep_confirmed(hours: float) -> void:
 ## 结局面板：暂停世界，显示结局文字与统计；继续生存 / 重新开始。
 func show_ending(days: int) -> void:
 	_npc_panel.visible = false
-	_storage_panel.visible = false
+	_set_gear_panel_visible(false)
+	_equip_visible = false
+	_storage_box.visible = false
 	_sofa_panel.visible = false
 	_craft_panel.visible = false
 	_ending_title.text = "撤离成功"
@@ -640,14 +655,15 @@ func _refresh_equip_label() -> void:
 ## —— Tab 装备面板：人体轮廓布局 ——————————————————————————————
 ## 7 个部位槽按人体位置摆放（形状+位置承担识别，文字降级为辅助）。
 ## 槽位尺寸本身就是信息：衣服最大、帽子最小。换美术时只改槽位贴图，布局不动。
+## 2026-10-15 第四批 UI 放大：整体 ×1.25（槽 56→72 级别，容器 280×250→350×312）。
 const BODY_SLOT_LAYOUT := {
-	ItemData.SLOT_HEAD: {"pos": Vector2(112, 0), "size": Vector2(56, 36), "tag": "帽子"},
-	ItemData.SLOT_HAND_L: {"pos": Vector2(6, 58), "size": Vector2(64, 64), "tag": "左手"},
-	ItemData.SLOT_HAND_R: {"pos": Vector2(210, 58), "size": Vector2(64, 64), "tag": "右手"},
-	ItemData.SLOT_BACKPACK: {"pos": Vector2(96, 58), "size": Vector2(88, 44), "tag": "背包"},
-	ItemData.SLOT_CHEST: {"pos": Vector2(96, 108), "size": Vector2(88, 76), "tag": "衣服"},
-	ItemData.SLOT_LEGS: {"pos": Vector2(96, 190), "size": Vector2(42, 50), "tag": "裤子"},
-	ItemData.SLOT_FEET: {"pos": Vector2(142, 190), "size": Vector2(42, 50), "tag": "鞋子"},
+	ItemData.SLOT_HEAD: {"pos": Vector2(140, 0), "size": Vector2(70, 45), "tag": "帽子"},
+	ItemData.SLOT_HAND_L: {"pos": Vector2(8, 72), "size": Vector2(80, 80), "tag": "左手"},
+	ItemData.SLOT_HAND_R: {"pos": Vector2(262, 72), "size": Vector2(80, 80), "tag": "右手"},
+	ItemData.SLOT_BACKPACK: {"pos": Vector2(120, 72), "size": Vector2(110, 55), "tag": "背包"},
+	ItemData.SLOT_CHEST: {"pos": Vector2(120, 135), "size": Vector2(110, 95), "tag": "衣服"},
+	ItemData.SLOT_LEGS: {"pos": Vector2(120, 238), "size": Vector2(52, 62), "tag": "裤子"},
+	ItemData.SLOT_FEET: {"pos": Vector2(178, 238), "size": Vector2(52, 62), "tag": "鞋子"},
 }
 ## 槽位的显示顺序（从上到下：帽子 → 双手 → 背包 → 衣服 → 下肢）。
 const BODY_SLOT_ORDER: Array[String] = [
@@ -669,7 +685,7 @@ func _refresh_equipment() -> void:
 			button.position = info.pos
 			button.size = info.size
 			button.clip_text = true
-			button.add_theme_font_size_override("font_size", 11)
+			button.add_theme_font_size_override("font_size", 15)
 			button.pressed.connect(_on_equip_slot_pressed.bind(slot))
 			button.tooltip_text = "%s（点击脱下）" % info.tag
 			_body_layout.add_child(button)
@@ -734,6 +750,7 @@ func _refresh_storage() -> void:
 
 
 ## 打开某个容器时切换面板归属；同时只显示一个容器。
+## 容器与 Tab 共用 GearPanel：开箱即显示（记住是谁开的，关箱时按需还原）。
 func _on_container_open_changed(open: bool, container: ContainerBase) -> void:
 	if open:
 		if _container != null and _container != container and _container.open:
@@ -741,15 +758,24 @@ func _on_container_open_changed(open: bool, container: ContainerBase) -> void:
 		_sofa_panel.visible = false  # 与沙发选项面板互斥
 		_craft_panel.visible = false  # 与制作面板互斥
 		_npc_panel.visible = false  # 与对话面板互斥
-		if _equip_visible:  # 与 Tab 装备面板互斥
-			_toggle_gear_panel()
 		_close_map_if_open()
 		_container = container
-		_storage_panel.visible = true
+		_gear_opened_by_container = not _equip_visible
+		_equip_visible = true
+		_set_gear_panel_visible(true)
+		_storage_box.visible = true
 		_refresh_storage()
+		_refresh_equipment()
+		_refresh_inventory()
 	elif _container == container:
 		_container = null
-		_storage_panel.visible = false
+		_storage_box.visible = false
+		if _gear_opened_by_container:
+			# 面板是开箱才出现的：关箱即整体关闭，屏幕不留常驻面板
+			_gear_opened_by_container = false
+			_equip_visible = false
+			_set_gear_panel_visible(false)
+		# 否则面板本来就是 Tab 打开的：保持显示，切回纯装备布局
 
 
 func _on_container_storage_changed(container: ContainerBase) -> void:
@@ -784,7 +810,7 @@ func _fill_grid(grid: GridContainer, inv: Inventory, is_storage: bool) -> void:
 		button.text = item.display_name_tiered() + (" ×%d" % count if count > 1 else "")
 		button.tooltip_text = item.display_name_tiered() + \
 				(" ×%d" % count if count > 1 else "") + "\n" + item.describe()
-		button.add_theme_font_size_override("font_size", 12)
+		button.add_theme_font_size_override("font_size", 14)
 		_add_color_chip(button, item.color)
 		# 武器分级边框色：破烂灰 / 普通绿 / 精良蓝 / 稀有金
 		if item.tier >= 1 and ItemData.TIER_COLORS.has(item.tier):

@@ -101,7 +101,7 @@ text = "生命 100 / 100"
 horizontal_alignment = 1
 vertical_alignment = 1
 mouse_filter = 2
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 14
 
 [node name="FoodBar" type="ProgressBar" parent="Root/Bars"]
 custom_minimum_size = Vector2(0, 22)
@@ -118,7 +118,7 @@ text = "饱食 100 / 100"
 horizontal_alignment = 1
 vertical_alignment = 1
 mouse_filter = 2
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 14
 
 [node name="WaterBar" type="ProgressBar" parent="Root/Bars"]
 custom_minimum_size = Vector2(0, 22)
@@ -135,7 +135,7 @@ text = "饮水 100 / 100"
 horizontal_alignment = 1
 vertical_alignment = 1
 mouse_filter = 2
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 14
 
 [node name="StaminaBar" type="ProgressBar" parent="Root/Bars"]
 custom_minimum_size = Vector2(0, 22)
@@ -152,7 +152,7 @@ text = "精力 100 / 100"
 horizontal_alignment = 1
 vertical_alignment = 1
 mouse_filter = 2
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 14
 
 [node name="FatigueBar" type="ProgressBar" parent="Root/Bars"]
 custom_minimum_size = Vector2(0, 22)
@@ -169,7 +169,7 @@ text = "疲劳 0 · 正常"
 horizontal_alignment = 1
 vertical_alignment = 1
 mouse_filter = 2
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 14
 
 [node name="EquipLabel" type="Label" parent="Root"]
 offset_left = 16.0
@@ -178,7 +178,7 @@ offset_right = 380.0
 offset_bottom = 212.0
 text = "武器：空手（伤害 5）"
 theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 15
 
 [node name="DayLabel" type="Label" parent="Root"]
 offset_left = 16.0
@@ -189,7 +189,7 @@ text = "第 1 天 · 白天"
 theme_override_colors/font_color = Color(1, 0.95, 0.7, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 0.8)
 theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 15
 
 [node name="MessageLabel" type="Label" parent="Root"]
 visible = false
@@ -201,7 +201,7 @@ offset_bottom = 44.0
 horizontal_alignment = 1
 vertical_alignment = 1
 theme_override_colors/font_color = Color(1, 0.92, 0.6, 1)
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 17
 theme_override_styles/normal = SubResource("MessageStyle")
 
 [node name="PromptLabel" type="Label" parent="Root"]
@@ -227,10 +227,8 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -330.0
-offset_top = -200.0
-offset_right = 330.0
-offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_styles/panel = SubResource("GearPanelStyle")
 
 [node name="GearBox" type="VBoxContainer" parent="Root/GearPanel"]
@@ -239,13 +237,13 @@ theme_override_constants/separation = 6
 [node name="GearStats" type="Label" parent="Root/GearPanel/GearBox"]
 text = "攻击 5 · 护甲 0 · 移速 +0%"
 theme_override_colors/font_color = Color(0.85, 0.85, 0.8, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 15
 
 [node name="GearBody" type="HBoxContainer" parent="Root/GearPanel/GearBox"]
 theme_override_constants/separation = 24
 
 [node name="BodyLayout" type="Control" parent="Root/GearPanel/GearBox/GearBody"]
-custom_minimum_size = Vector2(280, 250)
+custom_minimum_size = Vector2(350, 312)
 
 [node name="InvBox" type="VBoxContainer" parent="Root/GearPanel/GearBox/GearBody"]
 theme_override_constants/separation = 6
@@ -253,10 +251,10 @@ theme_override_constants/separation = 6
 [node name="InvTitle" type="Label" parent="Root/GearPanel/GearBox/GearBody/InvBox"]
 text = "背包 · 左键=使用/装备 · 右键=丢弃"
 theme_override_colors/font_color = Color(0.9, 0.95, 0.85, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 15
 
 [node name="InventoryScroll" type="ScrollContainer" parent="Root/GearPanel/GearBox/GearBody/InvBox"]
-custom_minimum_size = Vector2(376, 196)
+custom_minimum_size = Vector2(420, 264)
 horizontal_scroll_mode = 0
 
 [node name="InventoryGrid" type="GridContainer" parent="Root/GearPanel/GearBox/GearBody/InvBox/InventoryScroll"]
@@ -264,34 +262,29 @@ columns = 6
 theme_override_constants/h_separation = 6
 theme_override_constants/v_separation = 6
 
-[node name="GearHint" type="Label" parent="Root/GearPanel/GearBox"]
-text = "Tab 关闭"
-theme_override_colors/font_color = Color(0.6, 0.6, 0.55, 1)
-theme_override_font_sizes/font_size = 11
-horizontal_alignment = 2
-
-[node name="StoragePanel" type="PanelContainer" parent="Root"]
+[node name="StorageBox" type="VBoxContainer" parent="Root/GearPanel/GearBox/GearBody"]
 visible = false
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -340.0
-offset_top = 16.0
-offset_right = -16.0
-offset_bottom = 300.0
-theme_override_styles/panel = SubResource("PanelStyle")
+theme_override_constants/separation = 6
 
-[node name="StorageBox" type="VBoxContainer" parent="Root/StoragePanel"]
-theme_override_constants/separation = 8
-
-[node name="StorageTitle" type="Label" parent="Root/StoragePanel/StorageBox"]
-text = "营地仓库 · 点击存取"
+[node name="StorageTitle" type="Label" parent="Root/GearPanel/GearBox/GearBody/StorageBox"]
+text = "箱子 · 点击取出"
 theme_override_colors/font_color = Color(0.9, 0.95, 0.85, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 15
 
-[node name="StorageGrid" type="GridContainer" parent="Root/StoragePanel/StorageBox"]
+[node name="StorageScroll" type="ScrollContainer" parent="Root/GearPanel/GearBox/GearBody/StorageBox"]
+custom_minimum_size = Vector2(300, 264)
+horizontal_scroll_mode = 0
+
+[node name="StorageGrid" type="GridContainer" parent="Root/GearPanel/GearBox/GearBody/StorageBox/StorageScroll"]
 columns = 6
 theme_override_constants/h_separation = 4
 theme_override_constants/v_separation = 4
+
+[node name="GearHint" type="Label" parent="Root/GearPanel/GearBox"]
+text = "Tab 关闭"
+theme_override_colors/font_color = Color(0.6, 0.6, 0.55, 1)
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 2
 
 [node name="SofaPanel" type="PanelContainer" parent="Root"]
 visible = false
@@ -308,18 +301,18 @@ theme_override_constants/separation = 8
 text = "沙发"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.9, 0.95, 0.85, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 15
 
 [node name="RestButton" type="Button" parent="Root/SofaPanel/SofaBox"]
-custom_minimum_size = Vector2(220, 34)
+custom_minimum_size = Vector2(260, 44)
 text = "休息一下（+5 生命）"
 
 [node name="SearchButton" type="Button" parent="Root/SofaPanel/SofaBox"]
-custom_minimum_size = Vector2(220, 34)
+custom_minimum_size = Vector2(260, 44)
 text = "翻找物品"
 
 [node name="CloseButton" type="Button" parent="Root/SofaPanel/SofaBox"]
-custom_minimum_size = Vector2(220, 34)
+custom_minimum_size = Vector2(260, 44)
 text = "关闭"
 
 [node name="CraftPanel" type="PanelContainer" parent="Root"]
@@ -337,13 +330,13 @@ theme_override_constants/separation = 6
 text = "工作台 · 制作"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.9, 0.95, 0.85, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 15
 
 [node name="CraftList" type="VBoxContainer" parent="Root/CraftPanel/CraftBox"]
 theme_override_constants/separation = 6
 
 [node name="CraftCloseButton" type="Button" parent="Root/CraftPanel/CraftBox"]
-custom_minimum_size = Vector2(0, 30)
+custom_minimum_size = Vector2(0, 40)
 text = "关闭"
 
 [node name="ThoughtPanel" type="PanelContainer" parent="Root"]
@@ -369,7 +362,7 @@ text = "……"
 horizontal_alignment = 1
 autowrap_mode = 3
 theme_override_colors/font_color = Color(0.85, 0.88, 0.85, 1)
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 17
 
 [node name="ThoughtHint" type="Label" parent="Root/ThoughtPanel/ThoughtBox"]
 visible = false
@@ -378,7 +371,7 @@ text = ""
 horizontal_alignment = 1
 autowrap_mode = 3
 theme_override_colors/font_color = Color(0.62, 0.68, 0.62, 1)
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 
 [node name="NpcPanel" type="PanelContainer" parent="Root"]
 visible = false
@@ -395,7 +388,7 @@ theme_override_constants/separation = 8
 text = "飞行员 老周"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.9, 0.95, 0.85, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 15
 
 [node name="NpcText" type="RichTextLabel" parent="Root/NpcPanel/NpcBox"]
 custom_minimum_size = Vector2(330, 150)
@@ -403,11 +396,11 @@ bbcode_enabled = true
 fit_content = true
 
 [node name="NpcDeliverButton" type="Button" parent="Root/NpcPanel/NpcBox"]
-custom_minimum_size = Vector2(0, 34)
+custom_minimum_size = Vector2(0, 44)
 text = "交付物资"
 
 [node name="NpcCloseButton" type="Button" parent="Root/NpcPanel/NpcBox"]
-custom_minimum_size = Vector2(0, 30)
+custom_minimum_size = Vector2(0, 40)
 text = "关闭"
 
 [node name="MapPanel" type="PanelContainer" parent="Root"]
@@ -432,7 +425,7 @@ theme_override_constants/separation = 6
 text = "地图（M 键开关）· 深色 = 未知区域"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.9, 0.95, 0.85, 1)
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 17
 
 [node name="MapCanvas" type="Control" parent="Root/MapPanel/MapBox"]
 custom_minimum_size = Vector2(740, 480)
@@ -442,7 +435,7 @@ script = ExtResource("2_mapcanvas")
 text = "图例：● 已发现地点 · ✓ 已探索 · 白点 = 你 · 圆点颜色区分地点"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.65, 0.68, 0.62, 1)
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 
 [node name="PauseMenu" type="ColorRect" parent="Root"]
 visible = false
@@ -490,7 +483,7 @@ text = "退出游戏"
 text = "提示：F9 / F10 也可快速存读档"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.7, 0.7, 0.65, 1)
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 
 [node name="EndingPanel" type="ColorRect" parent="Root"]
 visible = false
@@ -523,7 +516,7 @@ text = "……"
 horizontal_alignment = 1
 autowrap_mode = 3
 theme_override_colors/font_color = Color(0.85, 0.85, 0.8, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 15
 
 [node name="EndingContinueButton" type="Button" parent="Root/EndingPanel/Center/Panel/EndingBox"]
 custom_minimum_size = Vector2(240, 38)
@@ -557,7 +550,7 @@ mouse_filter = 2
 text = "任务追踪"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.9, 0.95, 0.85, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 14
 
 [node name="QuestList" type="VBoxContainer" parent="Root/QuestTrackerPanel/QuestTrackerBox"]
 layout_mode = 2
@@ -571,14 +564,14 @@ text = "没有追踪中的任务（ESC → 任务列表）"
 horizontal_alignment = 1
 autowrap_mode = 3
 theme_override_colors/font_color = Color(0.6, 0.62, 0.58, 1)
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 
 [node name="QuestListButton" type="Button" parent="Root/PauseMenu/Center/Panel/MenuBox"]
-custom_minimum_size = Vector2(220, 34)
+custom_minimum_size = Vector2(260, 44)
 text = "任务列表"
 
 [node name="HealthButton" type="Button" parent="Root/PauseMenu/Center/Panel/MenuBox"]
-custom_minimum_size = Vector2(220, 34)
+custom_minimum_size = Vector2(260, 44)
 text = "健康状态"
 
 [node name="HealthPanel" type="PanelContainer" parent="Root"]
@@ -596,13 +589,13 @@ theme_override_constants/separation = 8
 text = "健康状态"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.95, 0.85, 0.85, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 15
 
 [node name="HealthVitals" type="Label" parent="Root/HealthPanel/HealthBox"]
 text = "生命 100 · 精力 100/100 · 疲劳 0（正常）"
 autowrap_mode = 2
 theme_override_colors/font_color = Color(0.85, 0.9, 0.85, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 14
 
 [node name="HealthScroll" type="ScrollContainer" parent="Root/HealthPanel/HealthBox"]
 custom_minimum_size = Vector2(0, 300)
@@ -613,7 +606,7 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 6
 
 [node name="HealthCloseButton" type="Button" parent="Root/HealthPanel/HealthBox"]
-custom_minimum_size = Vector2(0, 30)
+custom_minimum_size = Vector2(0, 40)
 text = "关闭"
 
 [node name="QuestPanel" type="PanelContainer" parent="Root"]
@@ -631,7 +624,7 @@ theme_override_constants/separation = 8
 text = "任务列表 · 点「追踪」显示在右上角"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.9, 0.95, 0.85, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 15
 
 [node name="QuestScroll" type="ScrollContainer" parent="Root/QuestPanel/QuestBox"]
 custom_minimum_size = Vector2(0, 320)
@@ -642,7 +635,7 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
 [node name="QuestCloseButton" type="Button" parent="Root/QuestPanel/QuestBox"]
-custom_minimum_size = Vector2(0, 30)
+custom_minimum_size = Vector2(0, 40)
 text = "关闭"
 
 [node name="SleepPanel" type="PanelContainer" parent="Root"]
@@ -660,27 +653,27 @@ theme_override_constants/separation = 8
 text = "睡觉"
 horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.9, 0.95, 0.85, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 15
 
 [node name="SleepInfo" type="Label" parent="Root/SleepPanel/SleepBox"]
 text = "当前时间 06:00 · 疲劳 0（正常）"
 theme_override_colors/font_color = Color(0.85, 0.85, 0.8, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 14
 
 [node name="Sleep4Button" type="Button" parent="Root/SleepPanel/SleepBox"]
-custom_minimum_size = Vector2(0, 34)
+custom_minimum_size = Vector2(0, 44)
 text = "睡 4 小时（疲劳 -32）"
 
 [node name="Sleep8Button" type="Button" parent="Root/SleepPanel/SleepBox"]
-custom_minimum_size = Vector2(0, 34)
+custom_minimum_size = Vector2(0, 44)
 text = "睡 8 小时（疲劳 -64）"
 
 [node name="SleepHint" type="Label" parent="Root/SleepPanel/SleepBox"]
 text = "睡眠会推进时间，饥饿与口渴照常消耗"
 autowrap_mode = 3
 theme_override_colors/font_color = Color(0.65, 0.68, 0.62, 1)
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 13
 
 [node name="SleepCloseButton" type="Button" parent="Root/SleepPanel/SleepBox"]
-custom_minimum_size = Vector2(0, 30)
+custom_minimum_size = Vector2(0, 40)
 text = "取消"
