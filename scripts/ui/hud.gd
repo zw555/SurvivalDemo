@@ -10,6 +10,15 @@ const SLOT_SIZE := Vector2(46, 46)
 @onready var _food_text: Label = $Root/Bars/FoodBar/FoodText
 @onready var _water_bar: ProgressBar = $Root/Bars/WaterBar
 @onready var _water_text: Label = $Root/Bars/WaterBar/WaterText
+@onready var _stamina_bar: ProgressBar = $Root/Bars/StaminaBar
+@onready var _stamina_text: Label = $Root/Bars/StaminaBar/StaminaText
+@onready var _fatigue_bar: ProgressBar = $Root/Bars/FatigueBar
+@onready var _fatigue_text: Label = $Root/Bars/FatigueBar/FatigueText
+@onready var _sleep_panel: PanelContainer = $Root/SleepPanel
+@onready var _sleep_info: Label = $Root/SleepPanel/SleepBox/SleepInfo
+@onready var _sleep4_button: Button = $Root/SleepPanel/SleepBox/Sleep4Button
+@onready var _sleep8_button: Button = $Root/SleepPanel/SleepBox/Sleep8Button
+@onready var _sleep_close_button: Button = $Root/SleepPanel/SleepBox/SleepCloseButton
 @onready var _equip_label: Label = $Root/EquipLabel
 @onready var _message_label: Label = $Root/MessageLabel
 @onready var _inventory_grid: GridContainer = $Root/InventoryGrid
@@ -72,6 +81,8 @@ var _equip_visible := false
 var _menu_open := false
 ## 玩家点了"交付物资"；由 main.gd（任务状态机）裁决。
 signal npc_deliver_pressed
+## 玩家在睡眠菜单确认了时长（4/8 小时）；由 main.gd 执行睡眠结算。
+signal sleep_confirmed(hours: float)
 
 var _map_open := false
 
@@ -93,6 +104,9 @@ func _ready() -> void:
 	_ending_restart.pressed.connect(_on_ending_restart)
 	_quest_list_button.pressed.connect(_on_quest_list_opened)
 	_quest_close_button.pressed.connect(_on_quest_list_closed)
+	_sleep4_button.pressed.connect(_on_sleep_confirmed.bind(4.0))
+	_sleep8_button.pressed.connect(_on_sleep_confirmed.bind(8.0))
+	_sleep_close_button.pressed.connect(close_sleep_menu)
 	_recipes = Crafting.load_recipes()
 
 
@@ -468,6 +482,37 @@ func _on_npc_dialogue_closed() -> void:
 	_npc_panel.visible = false
 
 
+## —— 睡眠菜单（床交互触发，main.gd 执行结算）—————————————————
+
+## 打开睡眠菜单：与其它面板互斥；显示当前时刻/疲劳阶段与预计恢复效果。
+func show_sleep_menu() -> void:
+	if _container != null and _container.open:
+		_container.set_open(false)
+	_sofa_panel.visible = false
+	_craft_panel.visible = false
+	_npc_panel.visible = false
+	_close_map_if_open()
+	var st: StaminaSystem = _player.stamina
+	var hour := 0.0
+	var day_night := _day_night
+	if day_night != null:
+		hour = day_night.hour_of_day()
+	_sleep_info.text = "当前时间 %02d:%02d · 疲劳 %d（%s）" % [
+		int(hour), int(fmod(hour, 1.0) * 60.0), roundi(st.fatigue), st.stage_label()]
+	_sleep4_button.text = "睡 4 小时（疲劳 -%d）" % roundi(st.sleep_relief_preview(4.0))
+	_sleep8_button.text = "睡 8 小时（疲劳 -%d）" % roundi(st.sleep_relief_preview(8.0))
+	_sleep_panel.visible = true
+
+
+func close_sleep_menu() -> void:
+	_sleep_panel.visible = false
+
+
+func _on_sleep_confirmed(hours: float) -> void:
+	_sleep_panel.visible = false
+	sleep_confirmed.emit(hours)
+
+
 ## 结局面板：暂停世界，显示结局文字与统计；继续生存 / 重新开始。
 func show_ending(days: int) -> void:
 	_npc_panel.visible = false
@@ -503,6 +548,14 @@ func _refresh_bars() -> void:
 	_water_bar.max_value = int(_player.max_water)
 	_water_bar.value = _player.water
 	_water_text.text = "饮水 %d / %d" % [roundi(_player.water), int(_player.max_water)]
+	# 精力：当前值 / 动态上限（随疲劳压低）
+	var st: StaminaSystem = _player.stamina
+	_stamina_bar.max_value = st.max_stamina()
+	_stamina_bar.value = st.stamina
+	_stamina_text.text = "精力 %d / %d" % [roundi(st.stamina), roundi(st.max_stamina())]
+	# 疲劳：0-100 + 阶段名
+	_fatigue_bar.value = st.fatigue
+	_fatigue_text.text = "疲劳 %d · %s" % [roundi(st.fatigue), st.stage_label()]
 
 
 func _on_equipped_changed() -> void:

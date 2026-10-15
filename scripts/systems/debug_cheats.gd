@@ -108,7 +108,7 @@ func _toggle_day_night() -> void:
 	_notify("切换到%s" % ("黑夜" if to_night else "白天"))
 
 
-## F5：状态全满 + 备弹补充（不清背包）。
+## F5：状态全满 + 备弹补充（不清背包）。精力回满、疲劳清零。
 func _refill_status() -> void:
 	var player := _player()
 	if player == null:
@@ -116,6 +116,7 @@ func _refill_status() -> void:
 	player.health = float(player.max_health)
 	player.food = player.max_food
 	player.water = player.max_water
+	player.stamina.refill()
 	player.ammo_pistol = maxi(player.ammo_pistol, AMMO_PER_BOX)
 	player.ammo_rifle = maxi(player.ammo_rifle, AMMO_PER_BOX)
-	_notify("状态已回满（生命/食物/水/备弹）")
+	_notify("状态已回满（生命/食物/水/精力/疲劳/备弹）")

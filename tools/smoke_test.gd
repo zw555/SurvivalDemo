@@ -147,15 +147,16 @@ func _run() -> void:
 	player.regen_interval = 10.0
 
 	var bed: Interactable = main.get_node("Bed")
+	var hud_bed: Hud = main.get_node("HUD")
+	var sleep_panel: PanelContainer = hud_bed.get_node("Root/SleepPanel")
 	player.health = 50.0
 	player.global_position = bed.global_position
 	for i in 3:
 		await physics_frame
 	_check(player.nearest_interactable() == bed, "靠近床可探测到睡觉交互")
 	bed.interact(player)
-	_check(player.health == 70.0, "睡觉恢复 20% 生命值")
-	bed.interact(player)
-	_check(player.health == 70.0, "睡觉有冷却，不能连续回血")
+	_check(sleep_panel.visible, "床交互弹出睡眠菜单（不再直接回血）")
+	hud_bed.close_sleep_menu()
 
 	# 昼夜循环与天数
 	var day_night: DayNight = main.get_node("DayNight")
@@ -171,14 +172,43 @@ func _run() -> void:
 	_check(day_night.day_number == 2 and not day_night.is_night, "迎来第 2 天清晨")
 	_check(z2.detect_radius == detect_before, "白天僵尸强化解除")
 
-	# 夜里睡觉 = 回血 + 直接跳到清晨
-	bed.cooldown_seconds = 0.0
-	bed._cooldown_left = 0.0  # 清掉之前睡觉留下的冷却计时
+	# —— 睡眠结算：按游戏小时推进时间、降疲劳、回精力；保留 20% 回血 ——
+	bed.cooldown_seconds = 30.0
+	bed._cooldown_left = 0.0
+	player.health = 50.0
+	day_night.skip_to_morning()  # 归位到白天清晨，方便断言时刻
+	player.stamina.set_fatigue(60.0)
+	var hour_before := day_night.hour_of_day()
+	var day_before_sleep := day_night.day_number
+	bed.interact(player)
+	hud_bed._on_sleep_confirmed(4.0)
+	_check(not sleep_panel.visible, "确认睡眠后菜单关闭")
+	_check(player.health == 70.0, "睡眠结算恢复 20% 生命值（原床铺机制保留）")
+	_check(absf(day_night.hour_of_day() - hour_before - 4.0) < 0.2
+			and day_night.day_number == day_before_sleep,
+			"睡眠推进游戏内时间 4 小时（白天内不跨天）")
+	_check(absf(player.stamina.fatigue - 28.0) < 0.5, "4 小时睡眠降低疲劳 32（60→约 28）")
+	_check(absf(player.stamina.stamina - player.stamina.max_stamina()) < 0.5,
+			"睡醒精力回满（按动态上限）")
+	bed.interact(player)
+	_check(not sleep_panel.visible, "刚睡醒有冷却，不能连续睡")
+
+	# 夜里睡觉按小时推进：8 小时从 20:00 睡到 04:00 仍是同一夜；再睡 2 小时跨到清晨
+	bed._cooldown_left = 0.0
 	player.health = 50.0
 	day_night.force_night(true)
+	var night_start_day := day_night.day_number
 	bed.interact(player)
-	_check(day_night.day_number == 3 and not day_night.is_night, "夜里睡觉直接跳到第二天清晨")
-	_check(player.health == 70.0, "夜里睡觉同样恢复 20% 生命值")
+	hud_bed._on_sleep_confirmed(8.0)
+	_check(day_night.is_night and day_night.day_number == night_start_day,
+			"夜里睡 8 小时推进到凌晨（仍是同一夜）")
+	_check(absf(player.health - 70.0) < 0.01, "夜里睡 8 小时恢复 20%% 生命值（50→70）")
+	bed.interact(player)
+	hud_bed._on_sleep_confirmed(2.0)
+	_check(not day_night.is_night and day_night.day_number == night_start_day + 1,
+			"再睡 2 小时跨过清晨（天数 +1）")
+	_check(absf(player.health - 90.0) < 0.01,
+			"再睡 2 小时再次恢复 20%% 生命值（70→90）")
 
 	# 门：E 开关 + 门控安全区
 	var door: Door = main.get_node("Door")
@@ -1138,6 +1168,89 @@ func _run() -> void:
 	fog.set_physics_process(true)
 	fog.aim_override = Vector2.ZERO
 
+	# —— 精力与疲劳系统：初始值/消耗/恢复/阶段惩罚/上限/钳制/暂停 ——
+	var st: StaminaSystem = player.stamina
+	_check(st != null, "玩家挂载了精力/疲劳系统")
+	st.set_fatigue(0.0)
+	st.refill()
+	_check(st.stamina == 100.0 and st.fatigue == 0.0, "初始精力 100、疲劳 0")
+	# 奔跑：消耗精力 + 累积疲劳（容差含"上限收缩钳制"的 0.6×Δ疲劳，非额外扣减）
+	var fatigue_before_run := st.fatigue
+	st.tick(1.0, true, false)
+	_check(absf(st.stamina - 92.0) < 0.1, "奔跑 1 秒消耗 8 点精力")
+	_check(st.fatigue > fatigue_before_run, "奔跑累积疲劳（随游戏时间+额外档）")
+	# 精力耗尽不能继续奔跑（但步行不受限——步行本身不消耗）
+	st.stamina = 0.0
+	_check(not st.can_sprint(), "精力耗尽后不能继续奔跑")
+	# 近战：精力不足不能挥击（不部分消耗）；足够时消耗 8 点
+	st.refill()
+	st.stamina = 4.0
+	_check(not st.try_melee() and st.stamina == 4.0, "精力不足时不能近战")
+	st.refill()
+	var stamina_before_attack := st.stamina
+	player._attack_toward(Vector2.RIGHT)
+	_check(absf(st.stamina - (stamina_before_attack - 8.0)) < 0.01, "近战攻击消耗 8 点精力")
+	# 休息恢复：普通 10/s、安全屋 15/s；普通休息不降疲劳
+	st.stamina = 50.0
+	st.tick(1.0, false, false)
+	_check(absf(st.stamina - 60.0) < 0.5, "普通休息恢复 10 点/秒（正常阶段）")
+	st.stamina = 50.0
+	st.tick(1.0, false, true)
+	_check(absf(st.stamina - 65.0) < 0.5, "安全屋内休息恢复 15 点/秒")
+	var fatigue_before_rest := st.fatigue
+	st.tick(1.0, false, false)
+	_check(st.fatigue < fatigue_before_rest + 0.5,
+			"普通休息不显著降低疲劳（仅自然增长）")
+	# 疲劳阶段惩罚切换与回落解除（统一修正机制，基础属性不被改写）
+	st.set_fatigue(24.0)
+	_check(st.recovery_mult() == 1.0 and st.hit_miss_chance() == 0.0,
+			"阶段 A 正常：无惩罚")
+	st.set_fatigue(25.0)
+	_check(absf(st.recovery_mult() - 0.9) < 0.001, "阶段 B 轻度疲劳：精力恢复 -10%")
+	st.set_fatigue(50.0)
+	_check(absf(st.recovery_mult() - 0.75) < 0.001
+			and absf(st.hit_miss_chance() - 0.10) < 0.001,
+			"阶段 C 严重疲劳：恢复 -25%、落空率 10%")
+	st.set_fatigue(75.0)
+	_check(absf(st.recovery_mult() - 0.5) < 0.001
+			and absf(st.hit_miss_chance() - 0.25) < 0.001
+			and absf(st.attack_cooldown_mult() - 1.3333) < 0.001,
+			"阶段 D 极度疲劳：恢复 -50%、落空率 25%、攻速 -25%")
+	_check(absf(player.current_attack_cooldown()
+			- player.attack_cooldown * 1.3333) < 0.01,
+			"极度疲劳攻击冷却变长（读修正值，基础冷却未被改写）")
+	st.set_fatigue(20.0)
+	_check(st.recovery_mult() == 1.0 and st.hit_miss_chance() == 0.0,
+			"疲劳回落到正常后惩罚解除")
+	# 精力上限 = max(40, 100 - 0.6×疲劳)，当前精力被钳制不超上限
+	st.refill()
+	st.set_fatigue(50.0)
+	_check(absf(st.max_stamina() - 70.0) < 0.01 and st.stamina <= 70.0,
+			"疲劳 50 → 精力上限 70，当前精力不超过上限")
+	st.set_fatigue(100.0)
+	_check(absf(st.max_stamina() - 40.0) < 0.01, "疲劳 100 → 精力上限下限 40")
+	# 极值钳制：长时间/大数值运行不出现负数或越界
+	st.add_fatigue(500.0)
+	_check(st.fatigue == 100.0, "疲劳钳制不超过 100")
+	st.set_fatigue(-50.0)
+	_check(st.fatigue == 0.0, "疲劳钳制不为负")
+	st.stamina = 80.0
+	st.set_fatigue(0.0)
+	st.tick(9999.0, true, false)
+	_check(st.stamina == 0.0 and st.fatigue == 100.0,
+			"极端时长结算：精力钳制不为负、疲劳不越界")
+	# 暂停期间不累计疲劳、不推进时间（节点 _process 停跑）
+	st.set_fatigue(10.0)
+	var fatigue_when_paused := st.fatigue
+	paused = true
+	for i in 5:
+		await process_frame
+	paused = false
+	_check(st.fatigue == fatigue_when_paused, "暂停期间不累计疲劳")
+	_check(st.stamina >= 0.0 and st.stamina <= st.max_stamina(),
+			"暂停后精力仍在合法范围")
+	st.refill()
+
 	# 存档 / 读档
 	var saved_day: int = main.get_node("DayNight").day_number
 	var saved_pos := player.global_position + Vector2(120.0, 80.0)
@@ -1150,6 +1263,8 @@ func _run() -> void:
 	var fog_bits_before: String = fog.get_save_data()
 	main.map_markers["hardware"] = 2
 	main._quests.track("t_a")  # 任务追踪状态随存档保留的验证样本
+	player.stamina.set_fatigue(42.0)
+	player.stamina.stamina = 30.0  # 精力/疲劳随存档保留的验证样本
 	main.save_game()
 	player.health = 10.0
 	player.inventory.clear()
@@ -1169,6 +1284,8 @@ func _run() -> void:
 	_check(fog.get_save_data() == fog_bits_before, "读档保留迷雾探索进度")
 	_check(int(main.map_markers["hardware"]) == 2, "读档保留地图标记状态")
 	_check(main._quests.is_tracked("t_a"), "读档保留任务追踪状态")
+	_check(absf(player.stamina.fatigue - 42.0) < 0.01
+			and absf(player.stamina.stamina - 30.0) < 0.01, "读档保留精力与疲劳")
 	var boss_after_load := 0
 	for node in get_nodes_in_group("zombies"):
 		if node is Brute:

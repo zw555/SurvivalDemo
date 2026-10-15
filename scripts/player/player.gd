@@ -65,6 +65,13 @@ var _regen_accum := 0.0
 var _interactables: Array[Interactable] = []
 var _swing: Polygon2D
 var _sfx: AudioStreamPlayer
+var _sprinting := false  # 本帧是否在奔跑（物理帧判定，_process 里用于精力结算）
+var _sprint_denied_accum := 0.0  # 精力不足提示的节流计时
+
+## 精力/疲劳系统（参数与修正集中在该模块）；由 _ready 创建。
+var stamina: StaminaSystem
+## 安全屋区域引用（由 main.gd 注入），用于"安全屋内恢复更快"的判定。
+var camp_area: Area2D
 
 @onready var _visual: Polygon2D = $Visual
 
@@ -75,6 +82,11 @@ func _ready() -> void:
 	water = max_water
 	inventory = Inventory.new(base_slot_count)
 	inventory.changed.connect(_on_inventory_changed)
+	stamina = StaminaSystem.new()
+	stamina.name = "StaminaSystem"
+	add_child(stamina)
+	# 精力/疲劳变化统一并入 stats_changed，HUD 一条刷新路径
+	stamina.fatigue_stage_changed.connect(func(_label: String) -> void: stats_changed.emit())
 	_build_swing_arc()
 	_sfx = AudioStreamPlayer.new()
 	_sfx.bus = "Master"
@@ -90,7 +102,13 @@ func _physics_process(delta: float) -> void:
 		return
 	_attack_timer = maxf(0.0, _attack_timer - delta)
 	_knockback = _knockback.move_toward(Vector2.ZERO, knockback_decay * delta)
-	velocity = Input.get_vector("move_left", "move_right", "move_up", "move_down") * current_move_speed()
+	var input_vec := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	# 奔跑：按住 Shift 且有移动输入且精力足够；精力耗尽自动降为步行（不剥夺控制权）
+	_sprinting = input_vec != Vector2.ZERO and Input.is_action_pressed("sprint") \
+			and stamina.can_sprint()
+	velocity = input_vec * current_move_speed()
+	if _sprinting:
+		velocity *= StaminaSystem.SPRINT_SPEED_MULT
 	velocity += _knockback
 	move_and_slide()
 
@@ -98,6 +116,10 @@ func _physics_process(delta: float) -> void:
 ## 当前移速：基础移速 + 装备（鞋子等）的百分比加成。
 func current_move_speed() -> float:
 	return move_speed * (1.0 + speed_bonus_pct() / 100.0)
+
+
+func in_camp() -> bool:
+	return camp_area != null and camp_area.has_point(global_position)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -140,6 +162,15 @@ func _process(delta: float) -> void:
 		return
 	_drain_survival_stats(delta)
 	_natural_regen(delta)
+	# 精力/疲劳结算（暂停时 _process 不跑 → 暂停期间不消耗不累计）
+	if _sprint_denied_accum > 0.0:
+		_sprint_denied_accum = maxf(0.0, _sprint_denied_accum - delta)
+	if Input.is_action_pressed("sprint") and not _sprinting \
+			and Input.get_vector("move_left", "move_right", "move_up", "move_down") != Vector2.ZERO \
+			and _sprint_denied_accum <= 0.0 and not stamina.can_sprint():
+		notify.emit("太累了，跑不动了……先缓一缓")
+		_sprint_denied_accum = 2.0
+	stamina.tick(delta, _sprinting, in_camp())
 
 
 ## 当前使用的武器：左右手中伤害更高的一件；空手返回 null。
@@ -160,11 +191,13 @@ func current_damage() -> int:
 
 
 ## 当前攻击冷却：武器的 attack_cooldown（0 = 玩家默认）。匕首类更快。
+## 极度疲劳时冷却按统一修正变长（攻速 -25%），基础值不被改写。
 func current_attack_cooldown() -> float:
 	var weapon := current_weapon()
+	var base := attack_cooldown
 	if weapon != null and weapon.attack_cooldown > 0.0:
-		return weapon.attack_cooldown
-	return attack_cooldown
+		base = weapon.attack_cooldown
+	return base * stamina.attack_cooldown_mult()
 
 
 ## 当前攻击距离：武器的 attack_range（0 = 默认一格）。
@@ -429,10 +462,12 @@ func take_damage(amount: int, from_direction := Vector2.ZERO) -> void:
 
 
 ## 死亡后由主场景把玩家送回营地并调用。
+## 精力回满（死里逃生喘口气）；疲劳保留——长距离探索的负担不会因死亡消失。
 func revive() -> void:
 	dead = false
 	health = float(max_health)
 	_knockback = Vector2.ZERO
+	stamina.refill(true)
 	stats_changed.emit()
 
 
@@ -448,6 +483,8 @@ func get_save_data() -> Dictionary:
 		"health": health,
 		"food": food,
 		"water": water,
+		"stamina": stamina.stamina,
+		"fatigue": stamina.fatigue,
 		"ammo_pistol": ammo_pistol,
 		"ammo_rifle": ammo_rifle,
 		"inventory": inv_items,
@@ -463,6 +500,9 @@ func load_save_data(data: Dictionary) -> void:
 	water = minf(max_water, float(data.get("water", max_water)))
 	ammo_pistol = int(data.get("ammo_pistol", 0))
 	ammo_rifle = int(data.get("ammo_rifle", 0))
+	stamina.set_fatigue(float(data.get("fatigue", 0.0)))
+	stamina.stamina = clampf(float(data.get("stamina", stamina.max_stamina())),
+			0.0, stamina.max_stamina())
 	equipped.clear()
 	var equip_data: Dictionary = data.get("equipped", {})
 	for slot in equip_data:
@@ -485,11 +525,15 @@ func _attack() -> void:
 
 ## 按指定方向攻击（普通调用由 _attack 传入鼠标方向；测试可直接传方向）。
 func _attack_toward(aim: Vector2) -> void:
-	_attack_timer = current_attack_cooldown()
 	var weapon := current_weapon()
 	if weapon != null and weapon.kind == ItemData.KIND_GUN:
 		_gun_attack(weapon, aim.normalized())
 		return
+	# 近战消耗精力：耗尽时挥不动（不进入冷却，喘口气就能再试；提示走 _process 节流）
+	if not stamina.try_melee():
+		notify.emit("太累了，挥不动……")
+		return
+	_attack_timer = current_attack_cooldown()
 	var reach := current_attack_range()
 	_play_sfx(SFX_SWING)
 	_show_swing_arc(aim.angle(), reach)
@@ -515,6 +559,12 @@ func _attack_toward(aim: Vector2) -> void:
 				nearest_dist = d
 				nearest = z
 		targets = [nearest]  # 矛只刺中最近的一个
+	# 疲劳使命中率下降：现有战斗是范围判定必中，映射为本次攻击整体落空（一次概率判定）
+	if not targets.is_empty() and randf() < stamina.hit_miss_chance():
+		var host := get_tree().current_scene
+		if host != null:
+			FloatingText.spawn(host, global_position, "落空", Color(0.8, 0.8, 0.8))
+		return
 	for zombie in targets:
 		zombie.take_damage(current_damage(), (zombie.global_position - global_position).normalized())
 	if not targets.is_empty():
@@ -623,6 +673,13 @@ func _drain_survival_stats(delta: float) -> void:
 			_die()
 			return
 	stats_changed.emit()
+
+
+## 按秒数一次性结算生存消耗（睡眠推进时间时用，与实时规则完全一致）。
+## 返回是否仍然存活（睡梦中饿死会返回 false）。
+func drain_survival_seconds(seconds: float) -> bool:
+	_drain_survival_stats(seconds)
+	return not dead
 
 
 func _build_swing_arc() -> void:

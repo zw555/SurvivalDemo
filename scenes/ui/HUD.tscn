@@ -12,6 +12,12 @@ bg_color = Color(0.85, 0.62, 0.2, 1)
 [sub_resource type="StyleBoxFlat" id="WaterFill"]
 bg_color = Color(0.3, 0.55, 0.85, 1)
 
+[sub_resource type="StyleBoxFlat" id="StaminaFill"]
+bg_color = Color(0.45, 0.75, 0.35, 1)
+
+[sub_resource type="StyleBoxFlat" id="FatigueFill"]
+bg_color = Color(0.62, 0.42, 0.7, 1)
+
 [sub_resource type="StyleBoxFlat" id="PanelStyle"]
 bg_color = Color(0.09, 0.1, 0.09, 0.85)
 border_width_left = 1
@@ -65,7 +71,7 @@ mouse_filter = 2
 offset_left = 16.0
 offset_top = 16.0
 offset_right = 240.0
-offset_bottom = 124.0
+offset_bottom = 174.0
 theme_override_constants/separation = 8
 
 [node name="HealthBar" type="ProgressBar" parent="Root/Bars"]
@@ -119,20 +125,54 @@ vertical_alignment = 1
 mouse_filter = 2
 theme_override_font_sizes/font_size = 12
 
+[node name="StaminaBar" type="ProgressBar" parent="Root/Bars"]
+custom_minimum_size = Vector2(0, 22)
+max_value = 100.0
+value = 100.0
+show_percentage = false
+theme_override_styles/fill = SubResource("StaminaFill")
+
+[node name="StaminaText" type="Label" parent="Root/Bars/StaminaBar"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+text = "精力 100 / 100"
+horizontal_alignment = 1
+vertical_alignment = 1
+mouse_filter = 2
+theme_override_font_sizes/font_size = 12
+
+[node name="FatigueBar" type="ProgressBar" parent="Root/Bars"]
+custom_minimum_size = Vector2(0, 22)
+max_value = 100.0
+value = 0.0
+show_percentage = false
+theme_override_styles/fill = SubResource("FatigueFill")
+
+[node name="FatigueText" type="Label" parent="Root/Bars/FatigueBar"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+text = "疲劳 0 · 正常"
+horizontal_alignment = 1
+vertical_alignment = 1
+mouse_filter = 2
+theme_override_font_sizes/font_size = 12
+
 [node name="EquipLabel" type="Label" parent="Root"]
 offset_left = 16.0
-offset_top = 132.0
+offset_top = 190.0
 offset_right = 380.0
-offset_bottom = 154.0
+offset_bottom = 212.0
 text = "武器：空手（伤害 5）"
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 13
 
 [node name="DayLabel" type="Label" parent="Root"]
 offset_left = 16.0
-offset_top = 158.0
+offset_top = 218.0
 offset_right = 380.0
-offset_bottom = 180.0
+offset_bottom = 240.0
 text = "第 1 天 · 白天"
 theme_override_colors/font_color = Color(1, 0.95, 0.7, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 0.8)
@@ -542,3 +582,43 @@ theme_override_constants/separation = 8
 [node name="QuestCloseButton" type="Button" parent="Root/QuestPanel/QuestBox"]
 custom_minimum_size = Vector2(0, 30)
 text = "关闭"
+
+[node name="SleepPanel" type="PanelContainer" parent="Root"]
+visible = false
+offset_left = 16.0
+offset_top = 260.0
+offset_right = 300.0
+offset_bottom = 480.0
+theme_override_styles/panel = SubResource("PanelStyle")
+
+[node name="SleepBox" type="VBoxContainer" parent="Root/SleepPanel"]
+theme_override_constants/separation = 8
+
+[node name="SleepTitle" type="Label" parent="Root/SleepPanel/SleepBox"]
+text = "睡觉"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.9, 0.95, 0.85, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="SleepInfo" type="Label" parent="Root/SleepPanel/SleepBox"]
+text = "当前时间 06:00 · 疲劳 0（正常）"
+theme_override_colors/font_color = Color(0.85, 0.85, 0.8, 1)
+theme_override_font_sizes/font_size = 12
+
+[node name="Sleep4Button" type="Button" parent="Root/SleepPanel/SleepBox"]
+custom_minimum_size = Vector2(0, 34)
+text = "睡 4 小时（疲劳 -32）"
+
+[node name="Sleep8Button" type="Button" parent="Root/SleepPanel/SleepBox"]
+custom_minimum_size = Vector2(0, 34)
+text = "睡 8 小时（疲劳 -64）"
+
+[node name="SleepHint" type="Label" parent="Root/SleepPanel/SleepBox"]
+text = "睡眠会推进时间，饥饿与口渴照常消耗"
+autowrap_mode = 3
+theme_override_colors/font_color = Color(0.65, 0.68, 0.62, 1)
+theme_override_font_sizes/font_size = 11
+
+[node name="SleepCloseButton" type="Button" parent="Root/SleepPanel/SleepBox"]
+custom_minimum_size = Vector2(0, 30)
+text = "取消"

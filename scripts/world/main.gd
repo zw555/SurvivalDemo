@@ -109,6 +109,12 @@ func _ready() -> void:
 	_radio.broadcast_heard.connect(_on_radio_broadcast)
 	_pilot.talk_requested.connect(_on_pilot_talk)
 	_hud.npc_deliver_pressed.connect(_on_deliver_pressed)
+	# 精力/疲劳：安全屋引用（恢复档位）、昼夜时长（疲劳速率随游戏时间）、床睡眠菜单
+	_player.camp_area = _camp
+	_player.stamina.day_seconds = _day_night.day_seconds + _day_night.night_seconds
+	_player.stamina.fatigue_stage_changed.connect(_on_fatigue_stage_changed)
+	_bed.menu_requested.connect(_on_bed_menu)
+	_hud.sleep_confirmed.connect(_on_sleep_confirmed)
 	# 任务管理：撤离主线。目标文本里的物资进度随背包变化实时刷新。
 	_quests = QuestManager.new()
 	_quests.name = "QuestManager"
@@ -232,6 +238,38 @@ func _on_day_started(day: int) -> void:
 	for node in get_tree().get_nodes_in_group("zombies"):
 		if node is Zombie:
 			node.set_night_buffed(false)
+
+
+## —— 睡眠 ————————————————————————————————————————
+
+## 床交互：打开睡眠菜单（HUD 展示当前时刻/疲劳与预计恢复）。
+func _on_bed_menu() -> void:
+	_hud.show_sleep_menu()
+
+
+## 睡眠结算：按游戏小时逐段推进时间（昼夜/天数信号照常触发），
+## 每小时疲劳降低、精力回满；饥饿/饮水按现有速率照常消耗（可饿死）。
+## 保留原床铺回血（最大生命值 20%）。暂停状态打开不了本流程（交互被暂停拦截）。
+func _on_sleep_confirmed(hours: float) -> void:
+	if _player.dead:
+		return
+	var fatigue_before := _player.stamina.fatigue
+	for i in int(hours):
+		var secs := _day_night.advance_hours(1.0)
+		_player.stamina.sleep_settle()
+		if not _player.drain_survival_seconds(secs):
+			_hud.show_message("你在睡梦中饿倒了……", 4.0)
+			return
+	_bed.note_slept()
+	var relieved := roundi(fatigue_before - _player.stamina.fatigue)
+	_player.heal(int(round(_player.max_health * 20.0 / 100.0)))
+	_hud.show_message("一觉醒来：疲劳 -%d（当前 %d）· 恢复了 20 点生命"
+			% [relieved, roundi(_player.stamina.fatigue)], 4.0)
+
+
+## 疲劳阶段切换提示（恶化与恢复都提示，节流由阈值变化天然保证）。
+func _on_fatigue_stage_changed(label: String) -> void:
+	_hud.show_message("疲劳状态：%s" % label, 3.0)
 
 
 ## —— 撤离任务 ——————————————————————————————————————
