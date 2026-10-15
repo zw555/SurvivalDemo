@@ -36,7 +36,12 @@ func _run() -> void:
 			wander_frozen.erase(node)
 
 	_check(player.inventory.capacity == 8, "玩家初始背包 8 格")
-	_check(player.health == 100.0, "玩家初始血量 100")
+	_check(player.health == 65.0, "带伤开局（生命 65，不是满血）")
+	_check(absf(player.food - 54.0) < 1.0, "初始饱食度 54（3 分钟量）")
+	_check(absf(player.water - 50.0) < 5.0 and player.water < player.food,
+			"初始饮水 50 比饱食更紧")
+	_check(player.food_drain_per_sec == 0.3 and player.water_drain_per_sec == 0.5,
+			"消耗速率 ×3（食物 0.3 / 水 0.5 每秒）")
 	_check(get_nodes_in_group("zombies").size() > 0, "生成系统刷出了僵尸")
 	_check(get_nodes_in_group("pickups").is_empty(), "室外无散落物资（搜刮只在建筑内）")
 	_check(get_nodes_in_group("containers").size() > 0, "生成系统刷出了物资箱")
@@ -181,6 +186,8 @@ func _run() -> void:
 	bed.cooldown_seconds = 30.0
 	bed._cooldown_left = 0.0
 	player.health = 50.0
+	player.food = 100.0  # 消耗 ×3 后：睡眠期间水/粮耗尽会掉血，干扰回血断言，先回满
+	player.water = 100.0
 	day_night.skip_to_morning()  # 归位到白天清晨，方便断言时刻
 	player.stamina.set_fatigue(60.0)
 	var hour_before := day_night.hour_of_day()
@@ -201,6 +208,8 @@ func _run() -> void:
 	# 夜里睡觉按小时推进：8 小时从 20:00 睡到 04:00 仍是同一夜；再睡 2 小时跨到清晨
 	bed._cooldown_left = 0.0
 	player.health = 50.0
+	player.food = 100.0
+	player.water = 100.0
 	day_night.force_night(true)
 	var night_start_day := day_night.day_number
 	bed.interact(player)
@@ -208,6 +217,8 @@ func _run() -> void:
 	_check(day_night.is_night and day_night.day_number == night_start_day,
 			"夜里睡 8 小时推进到凌晨（仍是同一夜）")
 	_check(absf(player.health - 70.0) < 0.01, "夜里睡 8 小时恢复 20%% 生命值（50→70）")
+	player.food = 100.0  # 8 小时睡眠又消耗了不少水，再回满防止下一段睡眠掉血
+	player.water = 100.0
 	bed.interact(player)
 	hud_bed._on_sleep_confirmed(2.0)
 	_check(not day_night.is_night and day_night.day_number == night_start_day + 1,

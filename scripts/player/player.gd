@@ -36,10 +36,11 @@ const EQUIP_SLOTS: Array[String] = [
 @export var attack_cooldown := 0.45
 @export var max_food := 100.0
 @export var max_water := 100.0
-## 消耗速率按"一天 600 秒（现实 10 分钟）"折算：食物 60/天、水 100/天。
+## 消耗速率按"一天 600 秒（现实 10 分钟）"折算：食物 180/天、水 300/天（×3 压力档）。
+## 满状态 100 只够撑 333 秒 ≈ 一次出门时长：出门前必须算"带几个罐头"。
 ## 缺水比缺粮更急（现实里人不喝水死得更快），水是每天的主要补给压力。
-@export var food_drain_per_sec := 0.1
-@export var water_drain_per_sec := 0.167
+@export var food_drain_per_sec := 0.3
+@export var water_drain_per_sec := 0.5
 @export var starvation_damage_per_sec := 2.0
 @export var thirst_damage_per_sec := 3.0
 @export var base_slot_count := 8
@@ -47,9 +48,9 @@ const EQUIP_SLOTS: Array[String] = [
 @export var knockback_force := 200.0
 @export var knockback_decay := 900.0
 
-var health := 100.0
-var food := 100.0
-var water := 100.0
+var health := 65.0  ## 带伤开局（_ready 应用）：一睁眼就要面对"先包扎还是先找吃的"
+var food := 54.0  ## 开局 3 分钟量（0.3/秒 × 180 秒）：必须立刻决定去哪
+var water := 50.0  ## 开局约 1.6 分钟量：比食物更紧，出门第一目标
 var dead := false
 var god_mode := false  ## 仅调试键（DebugCheats）切换；Release 版无入口，恒为 false
 ## 枪械弹药储备：弹盒物品按 E 装填进来，射击时逐发消耗。
@@ -79,9 +80,10 @@ var camp_area: Area2D
 
 
 func _ready() -> void:
-	health = float(max_health)
-	food = max_food
-	water = max_water
+	# 新开局初始状态（带伤 + 低饱食 + 更紧的水）：读档时被存档值覆盖，不会重复发放
+	health = float(max_health) - 35.0
+	food = 54.0
+	water = 50.0
 	inventory = Inventory.new(base_slot_count)
 	inventory.changed.connect(_on_inventory_changed)
 	stamina = StaminaSystem.new()
