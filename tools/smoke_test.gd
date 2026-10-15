@@ -671,6 +671,53 @@ func _run() -> void:
 	player.use_item(player.inventory.slots.find(bp))
 	_check(player.inventory.capacity == player.base_slot_count + 4, "装备背包扩容 +4")
 
+	# —— Tab 装备+背包面板：人体轮廓、背包收进 Tab、属性条、点击脱下 ——
+	var hud_gear: Hud = main.get_node("HUD")
+	var gear_panel: PanelContainer = main.get_node("HUD/Root/GearPanel")
+	_check(gear_panel != null and not gear_panel.visible, "Tab 装备面板初始隐藏")
+	var inv_parent: Node = hud_gear._inventory_grid.get_parent()
+	while inv_parent != null and inv_parent.name != "GearPanel":
+		inv_parent = inv_parent.get_parent()
+	_check(inv_parent == gear_panel, "背包格收进 Tab 面板（不再常驻屏幕左下角）")
+	hud_gear._toggle_gear_panel()
+	_check(gear_panel.visible, "Tab 打开装备+背包同屏面板")
+	hud_gear._refresh_equipment()
+	var body_layout: Control = main.get_node("HUD/Root/GearPanel/GearBox/GearBody/BodyLayout")
+	_check(body_layout.get_child_count() == 7, "人体轮廓 7 个部位槽全部生成")
+	var pos_seen := {}
+	var layout_ok := true
+	for slot_btn in body_layout.get_children():
+		var btn := slot_btn as Button
+		if pos_seen.has(btn.position):
+			layout_ok = false
+		pos_seen[btn.position] = true
+	_check(layout_ok, "7 槽按人体位置排布（帽子/双手/躯干/下肢不重叠）")
+	_check(hud_gear._gear_stats.text.contains("攻击") and hud_gear._gear_stats.text.contains("护甲"),
+			"面板顶部属性条显示攻击/护甲/移速")
+	var chest_btn: Button = hud_gear._body_slots[ItemData.SLOT_CHEST]
+	var chest_before: ItemData = player.equipped.get(ItemData.SLOT_CHEST)
+	chest_btn.pressed.emit()
+	_check(player.equipped.get(ItemData.SLOT_CHEST) == null,
+			"点击已装备部位脱下放回背包")
+	if chest_before != null:  # 还原，不影响后续测试
+		player.use_item(player.inventory.slots.find(chest_before))
+	hud_gear._toggle_gear_panel()
+	_check(not gear_panel.visible, "再按 Tab 关闭面板（屏幕无面板残留）")
+	# 拾取对比提示：同时看伤害与冷却（DPS），不只按伤害排序
+	var saber_cmp: ItemData = load("res://data/items/weapon_army_saber.tres")
+	var club_hint: ItemData = load("res://data/items/weapon_wood_club.tres")
+	var hand_backup: ItemData = player.equipped.get(ItemData.SLOT_HAND_R)
+	player.equipped[ItemData.SLOT_HAND_R] = saber_cmp
+	_check(player._weapon_compare_hint(club_hint).contains("弱"),
+			"拾取更弱武器时给出明确提示")
+	player.equipped[ItemData.SLOT_HAND_R] = club_hint
+	_check(player._weapon_compare_hint(saber_cmp).contains("强")
+			and player._weapon_compare_hint(saber_cmp).contains("DPS"),
+			"拾取更强武器提示对比（含冷却折算的 DPS，不只伤害）")
+	player.equipped.erase(ItemData.SLOT_HAND_R)
+	if hand_backup != null:
+		player.equipped[ItemData.SLOT_HAND_R] = hand_backup
+
 	var shoes := load("res://data/items/sport_shoes.tres") as ItemData
 	player.inventory.add_item(shoes)
 	player.use_item(player.inventory.slots.find(shoes))

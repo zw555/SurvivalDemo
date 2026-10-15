@@ -263,9 +263,28 @@ func try_pickup(item: ItemData) -> bool:
 	if not inventory.add_item(item):
 		notify.emit("背包满了！")
 		return false
-	notify.emit("拾取了 %s" % item.display_name)
+	notify.emit("拾取了 %s%s" % [item.display_name_tiered(), _weapon_compare_hint(item)])
 	_play_sfx(SFX_PICKUP)
 	return true
+
+
+## 拾取武器时的对比提示：与当前主手武器比 DPS（伤害/冷却，不只看伤害——
+## 水果刀冷却快，裸伤害排序会误导）。更强时提醒按 Tab 装备。
+func _weapon_compare_hint(item: ItemData) -> String:
+	if item.tier < 1 or not (item.kind == ItemData.KIND_WEAPON or item.kind == ItemData.KIND_GUN):
+		return ""
+	var current := current_weapon()
+	if current == null:
+		return "（按 Tab 打开面板装备）"
+	var new_dps := float(item.damage) / maxf(item.attack_cooldown, 0.45)
+	var cur_dps := float(current.damage) / maxf(current.attack_cooldown, 0.45)
+	if new_dps > cur_dps * 1.05:
+		return "（比当前 %s 强：DPS %d→%d，按 Tab 装备！）" \
+				% [current.display_name, int(cur_dps), int(new_dps)]
+	elif new_dps < cur_dps * 0.95:
+		return "（比当前 %s 弱：DPS %d→%d）" \
+				% [current.display_name, int(cur_dps), int(new_dps)]
+	return ""
 
 
 ## 点击背包格子时的行为：吃 / 喝 / 用药 / 装填 / 投雷 / 装备（武器→手、背包→背包部位、服装→对应部位）。

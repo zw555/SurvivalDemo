@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/hud.gd" id="1_hud"]
 [ext_resource type="Script" path="res://scripts/ui/map_canvas.gd" id="2_mapcanvas"]
@@ -29,6 +29,18 @@ corner_radius_top_left = 6
 corner_radius_top_right = 6
 corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="GearPanelStyle"]
+bg_color = Color(0.07, 0.08, 0.07, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.5, 0.55, 0.45, 0.8)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 
 [sub_resource type="StyleBoxFlat" id="MessageStyle"]
 bg_color = Color(0.08, 0.09, 0.08, 0.8)
@@ -209,16 +221,54 @@ theme_override_colors/font_outline_color = Color(0, 0, 0, 0.8)
 theme_override_constants/outline_size = 4
 theme_override_font_sizes/font_size = 15
 
-[node name="InventoryGrid" type="GridContainer" parent="Root"]
-anchor_top = 1.0
-anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = -124.0
-offset_right = 440.0
-offset_bottom = -16.0
-columns = 8
-theme_override_constants/h_separation = 4
-theme_override_constants/v_separation = 4
+[node name="GearPanel" type="PanelContainer" parent="Root"]
+visible = false
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -330.0
+offset_top = -200.0
+offset_right = 330.0
+offset_bottom = 200.0
+theme_override_styles/panel = SubResource("GearPanelStyle")
+
+[node name="GearBox" type="VBoxContainer" parent="Root/GearPanel"]
+theme_override_constants/separation = 6
+
+[node name="GearStats" type="Label" parent="Root/GearPanel/GearBox"]
+text = "攻击 5 · 护甲 0 · 移速 +0%"
+theme_override_colors/font_color = Color(0.85, 0.85, 0.8, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="GearBody" type="HBoxContainer" parent="Root/GearPanel/GearBox"]
+theme_override_constants/separation = 24
+
+[node name="BodyLayout" type="Control" parent="Root/GearPanel/GearBox/GearBody"]
+custom_minimum_size = Vector2(280, 250)
+
+[node name="InvBox" type="VBoxContainer" parent="Root/GearPanel/GearBox/GearBody"]
+theme_override_constants/separation = 6
+
+[node name="InvTitle" type="Label" parent="Root/GearPanel/GearBox/GearBody/InvBox"]
+text = "背包 · 左键=使用/装备 · 右键=丢弃"
+theme_override_colors/font_color = Color(0.9, 0.95, 0.85, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="InventoryScroll" type="ScrollContainer" parent="Root/GearPanel/GearBox/GearBody/InvBox"]
+custom_minimum_size = Vector2(376, 196)
+horizontal_scroll_mode = 0
+
+[node name="InventoryGrid" type="GridContainer" parent="Root/GearPanel/GearBox/GearBody/InvBox/InventoryScroll"]
+columns = 6
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
+
+[node name="GearHint" type="Label" parent="Root/GearPanel/GearBox"]
+text = "Tab 关闭"
+theme_override_colors/font_color = Color(0.6, 0.6, 0.55, 1)
+theme_override_font_sizes/font_size = 11
+horizontal_alignment = 2
 
 [node name="StoragePanel" type="PanelContainer" parent="Root"]
 visible = false
@@ -241,33 +291,6 @@ theme_override_font_sizes/font_size = 13
 [node name="StorageGrid" type="GridContainer" parent="Root/StoragePanel/StorageBox"]
 columns = 6
 theme_override_constants/h_separation = 4
-theme_override_constants/v_separation = 4
-
-[node name="EquipPanel" type="PanelContainer" parent="Root"]
-visible = false
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -340.0
-offset_top = 316.0
-offset_right = -16.0
-offset_bottom = 648.0
-theme_override_styles/panel = SubResource("PanelStyle")
-
-[node name="EquipBox" type="VBoxContainer" parent="Root/EquipPanel"]
-theme_override_constants/separation = 6
-
-[node name="EquipTitle" type="Label" parent="Root/EquipPanel/EquipBox"]
-text = "装备 · 点击部位脱下（Tab 开关）"
-theme_override_colors/font_color = Color(0.9, 0.95, 0.85, 1)
-theme_override_font_sizes/font_size = 13
-
-[node name="EquipStats" type="Label" parent="Root/EquipPanel/EquipBox"]
-text = "攻击 5 · 护甲 0 · 移速 +0%"
-theme_override_colors/font_color = Color(0.85, 0.85, 0.8, 1)
-theme_override_font_sizes/font_size = 12
-
-[node name="EquipGrid" type="GridContainer" parent="Root/EquipPanel/EquipBox"]
-columns = 1
 theme_override_constants/v_separation = 4
 
 [node name="SofaPanel" type="PanelContainer" parent="Root"]

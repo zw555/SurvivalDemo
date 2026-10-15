@@ -1,8 +1,8 @@
 class_name Hud
 extends CanvasLayer
-## 生存 HUD：状态条、背包格子、容器面板（营地仓库/箱子）与提示信息。
+## 生存 HUD：状态条、Tab 装备+背包面板、容器面板（营地仓库/箱子）与提示信息。
 
-const SLOT_SIZE := Vector2(46, 46)
+const SLOT_SIZE := Vector2(56, 56)
 
 @onready var _health_bar: ProgressBar = $Root/Bars/HealthBar
 @onready var _health_text: Label = $Root/Bars/HealthBar/HealthText
@@ -21,15 +21,15 @@ const SLOT_SIZE := Vector2(46, 46)
 @onready var _sleep_close_button: Button = $Root/SleepPanel/SleepBox/SleepCloseButton
 @onready var _equip_label: Label = $Root/EquipLabel
 @onready var _message_label: Label = $Root/MessageLabel
-@onready var _inventory_grid: GridContainer = $Root/InventoryGrid
+@onready var _inventory_grid: GridContainer = $Root/GearPanel/GearBox/GearBody/InvBox/InventoryScroll/InventoryGrid
 @onready var _storage_panel: PanelContainer = $Root/StoragePanel
 @onready var _storage_title: Label = $Root/StoragePanel/StorageBox/StorageTitle
 @onready var _storage_grid: GridContainer = $Root/StoragePanel/StorageBox/StorageGrid
 @onready var _prompt_label: Label = $Root/PromptLabel
 @onready var _day_label: Label = $Root/DayLabel
-@onready var _equip_panel: PanelContainer = $Root/EquipPanel
-@onready var _equip_stats: Label = $Root/EquipPanel/EquipBox/EquipStats
-@onready var _equip_grid: GridContainer = $Root/EquipPanel/EquipBox/EquipGrid
+@onready var _gear_panel: PanelContainer = $Root/GearPanel
+@onready var _gear_stats: Label = $Root/GearPanel/GearBox/GearStats
+@onready var _body_layout: Control = $Root/GearPanel/GearBox/GearBody/BodyLayout
 @onready var _pause_menu: ColorRect = $Root/PauseMenu
 @onready var _continue_button: Button = $Root/PauseMenu/Center/Panel/MenuBox/ContinueButton
 @onready var _save_button: Button = $Root/PauseMenu/Center/Panel/MenuBox/SaveButton
@@ -142,10 +142,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("toggle_equipment"):
-		_equip_visible = not _equip_visible
-		_equip_panel.visible = _equip_visible
-		if _equip_visible:
-			_refresh_equipment()
+		_toggle_gear_panel()
 
 
 ## ESC 菜单：打开 = 暂停世界；HUD 因 PROCESS_MODE_ALWAYS 在暂停期间仍可点击。
@@ -229,6 +226,18 @@ func attach_map(fog: FogOfWar, buildings: Array, markers: Dictionary, player: No
 	_map_canvas.buildings = buildings
 	_map_canvas.markers = markers
 	_map_canvas.player = player
+
+
+## Tab 装备+背包面板：开关即互斥面板——打开时关掉容器/地图，屏幕不留常驻背包。
+func _toggle_gear_panel() -> void:
+	_equip_visible = not _equip_visible
+	_gear_panel.visible = _equip_visible
+	if _equip_visible:
+		if _container != null and _container.open:
+			_container.set_open(false)  # 与容器面板互斥
+		_close_map_if_open()
+		_refresh_equipment()
+		_refresh_inventory()
 
 
 ## M 键地图：打开时刷新一帧绘制；与容器/沙发/制作/NPC 面板互斥。
@@ -628,31 +637,71 @@ func _refresh_equip_label() -> void:
 		_equip_label.text = "武器：%s（伤害 %d）" % [hand.display_name_tiered(), hand.damage]
 
 
-## 装备面板：7 个部位槽，点击已装备的部位脱下放回背包。
+## —— Tab 装备面板：人体轮廓布局 ——————————————————————————————
+## 7 个部位槽按人体位置摆放（形状+位置承担识别，文字降级为辅助）。
+## 槽位尺寸本身就是信息：衣服最大、帽子最小。换美术时只改槽位贴图，布局不动。
+const BODY_SLOT_LAYOUT := {
+	ItemData.SLOT_HEAD: {"pos": Vector2(112, 0), "size": Vector2(56, 36), "tag": "帽子"},
+	ItemData.SLOT_HAND_L: {"pos": Vector2(6, 58), "size": Vector2(64, 64), "tag": "左手"},
+	ItemData.SLOT_HAND_R: {"pos": Vector2(210, 58), "size": Vector2(64, 64), "tag": "右手"},
+	ItemData.SLOT_BACKPACK: {"pos": Vector2(96, 58), "size": Vector2(88, 44), "tag": "背包"},
+	ItemData.SLOT_CHEST: {"pos": Vector2(96, 108), "size": Vector2(88, 76), "tag": "衣服"},
+	ItemData.SLOT_LEGS: {"pos": Vector2(96, 190), "size": Vector2(42, 50), "tag": "裤子"},
+	ItemData.SLOT_FEET: {"pos": Vector2(142, 190), "size": Vector2(42, 50), "tag": "鞋子"},
+}
+## 槽位的显示顺序（从上到下：帽子 → 双手 → 背包 → 衣服 → 下肢）。
+const BODY_SLOT_ORDER: Array[String] = [
+	ItemData.SLOT_HEAD, ItemData.SLOT_HAND_L, ItemData.SLOT_HAND_R,
+	ItemData.SLOT_BACKPACK, ItemData.SLOT_CHEST, ItemData.SLOT_LEGS, ItemData.SLOT_FEET,
+]
+
+var _body_slots: Dictionary = {}  # slot 名 -> Button（_refresh_equipment 首次构建）
+
+
+## 装备面板：人体轮廓 7 槽 + 顶部属性条。点击已装备的部位脱下放回背包。
 func _refresh_equipment() -> void:
-	if _player == null or _equip_grid == null:
+	if _player == null or _body_layout == null:
 		return
-	if _equip_grid.get_child_count() == 0:
-		for slot in Player.EQUIP_SLOTS:
+	if _body_slots.is_empty():
+		for slot in BODY_SLOT_ORDER:
+			var info: Dictionary = BODY_SLOT_LAYOUT[slot]
 			var button := Button.new()
-			# GridContainer 不拉伸列宽、clip_text 不算文字宽度：必须显式给宽度
-			button.custom_minimum_size = Vector2(296, 30)
+			button.position = info.pos
+			button.size = info.size
 			button.clip_text = true
-			button.add_theme_font_size_override("font_size", 12)
+			button.add_theme_font_size_override("font_size", 11)
 			button.pressed.connect(_on_equip_slot_pressed.bind(slot))
-			_equip_grid.add_child(button)
-	for i in Player.EQUIP_SLOTS.size():
-		var slot: String = Player.EQUIP_SLOTS[i]
-		var button := _equip_grid.get_child(i) as Button
+			button.tooltip_text = "%s（点击脱下）" % info.tag
+			_body_layout.add_child(button)
+			_body_slots[slot] = button
+	for slot in BODY_SLOT_ORDER:
+		var info: Dictionary = BODY_SLOT_LAYOUT[slot]
+		var button: Button = _body_slots[slot]
 		var item: ItemData = _player.equipped.get(slot)
 		if item != null:
-			button.text = "%s：%s" % [ItemData.SLOT_NAMES[slot], item.display_name_tiered()]
-			button.tooltip_text = item.describe()
+			button.text = item.display_name_tiered()
+			button.tooltip_text = "%s · %s（点击脱下）" % [info.tag, item.describe()]
+			_style_slot_tier(button, item)
 		else:
-			button.text = "%s：空" % ItemData.SLOT_NAMES[slot]
-			button.tooltip_text = ""
-	_equip_stats.text = "攻击 %d · 护甲 %d · 移速 +%.0f%%" \
+			button.text = info.tag
+			button.tooltip_text = "%s（空）" % info.tag
+			button.remove_theme_stylebox_override("normal")
+			button.remove_theme_stylebox_override("hover")
+	_gear_stats.text = "攻击 %d · 护甲 %d · 移速 +%.0f%%" \
 			% [_player.current_damage(), _player.total_defense(), _player.speed_bonus_pct()]
+
+
+## 槽位分级边框：灰/绿/蓝/金（与背包格一致，余光可辨等级）。
+func _style_slot_tier(button: Button, item: ItemData) -> void:
+	if item.tier >= 1 and ItemData.TIER_COLORS.has(item.tier):
+		var border := StyleBoxFlat.new()
+		border.border_color = ItemData.TIER_COLORS[item.tier]
+		border.set_border_width_all(2)
+		button.add_theme_stylebox_override("normal", border)
+		button.add_theme_stylebox_override("hover", border)
+	else:
+		button.remove_theme_stylebox_override("normal")
+		button.remove_theme_stylebox_override("hover")
 
 
 func _on_equip_slot_pressed(slot: String) -> void:
@@ -679,6 +728,8 @@ func _on_container_open_changed(open: bool, container: ContainerBase) -> void:
 		_sofa_panel.visible = false  # 与沙发选项面板互斥
 		_craft_panel.visible = false  # 与制作面板互斥
 		_npc_panel.visible = false  # 与对话面板互斥
+		if _equip_visible:  # 与 Tab 装备面板互斥
+			_toggle_gear_panel()
 		_close_map_if_open()
 		_container = container
 		_storage_panel.visible = true
