@@ -64,6 +64,11 @@ const SLOT_SIZE := Vector2(46, 46)
 @onready var _quest_panel_list: VBoxContainer = $Root/QuestPanel/QuestBox/QuestScroll/QuestList
 @onready var _quest_close_button: Button = $Root/QuestPanel/QuestBox/QuestCloseButton
 @onready var _quest_list_button: Button = $Root/PauseMenu/Center/Panel/MenuBox/QuestListButton
+@onready var _health_panel: PanelContainer = $Root/HealthPanel
+@onready var _health_list: VBoxContainer = $Root/HealthPanel/HealthBox/HealthScroll/HealthList
+@onready var _health_vitals: Label = $Root/HealthPanel/HealthBox/HealthVitals
+@onready var _health_close_button: Button = $Root/HealthPanel/HealthBox/HealthCloseButton
+@onready var _health_button: Button = $Root/PauseMenu/Center/Panel/MenuBox/HealthButton
 
 ## 提供 save_game()/load_game() 的后端（主场景），由 main.gd 注入。
 var menu_backend: Node
@@ -104,6 +109,8 @@ func _ready() -> void:
 	_ending_restart.pressed.connect(_on_ending_restart)
 	_quest_list_button.pressed.connect(_on_quest_list_opened)
 	_quest_close_button.pressed.connect(_on_quest_list_closed)
+	_health_button.pressed.connect(_on_health_opened)
+	_health_close_button.pressed.connect(_on_health_closed)
 	_sleep4_button.pressed.connect(_on_sleep_confirmed.bind(4.0))
 	_sleep8_button.pressed.connect(_on_sleep_confirmed.bind(8.0))
 	_sleep_close_button.pressed.connect(close_sleep_menu)
@@ -160,6 +167,7 @@ func _close_menu() -> void:
 	_menu_open = false
 	_pause_menu.visible = false
 	_quest_panel.visible = false
+	_health_panel.visible = false
 	get_tree().paused = false
 
 
@@ -341,6 +349,49 @@ func _on_quest_track_toggled(quest_id: String) -> void:
 	if _quests != null:
 		_quests.toggle_track(quest_id)
 	_refresh_quest_panel()
+
+
+## —— 健康面板（ESC 菜单 → 健康状态）——————————————————————
+
+func _on_health_opened() -> void:
+	_quest_panel.visible = false  # 与任务列表互斥
+	_refresh_health_panel()
+	_health_panel.visible = true
+
+
+func _on_health_closed() -> void:
+	_health_panel.visible = false
+
+
+## 生命/精力/疲劳总览 + 每个伤势/疾病一行（严重程度、属性影响、推荐治疗）。
+func _refresh_health_panel() -> void:
+	for child in _health_list.get_children():
+		_health_list.remove_child(child)
+		child.queue_free()
+	if _player == null:
+		return
+	var stamina_sys := _player.stamina
+	_health_vitals.text = "生命 %d/%d · 精力 %d/%d · 疲劳 %d（%s）" % [
+		roundi(_player.health), _player.max_health,
+		roundi(stamina_sys.stamina), roundi(stamina_sys.max_stamina()),
+		roundi(stamina_sys.fatigue), stamina_sys.stage_label()]
+	var lines := _player.medical.summary_lines()
+	if lines.is_empty():
+		var ok := Label.new()
+		ok.text = "身体状态良好，没有伤势或疾病。"
+		ok.add_theme_font_size_override("font_size", 12)
+		ok.add_theme_color_override("font_color", Color(0.7, 0.85, 0.7))
+		_health_list.add_child(ok)
+		return
+	for line_text in lines:
+		var row := Label.new()
+		row.text = "◆ " + str(line_text)
+		row.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		row.add_theme_font_size_override("font_size", 12)
+		var danger := str(line_text).contains("！") or str(line_text).contains("危险")
+		row.add_theme_color_override("font_color",
+				Color(0.95, 0.55, 0.45) if danger else Color(0.9, 0.85, 0.7))
+		_health_list.add_child(row)
 
 
 func _on_workbench_menu() -> void:

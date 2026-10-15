@@ -398,7 +398,7 @@ func _run() -> void:
 			hosp_clear = false
 	_check(hosp_clear, "医院南墙入口可以通行")
 
-	# 药品机制：直接回血、不超上限、满血不消耗
+	# 药品机制：绷带处理出血（附带少量回血）；没有可治疗的状态时不消耗
 	var bandage := load("res://data/items/med_bandage.tres") as ItemData
 	_check(bandage.kind == ItemData.KIND_MEDICINE and bandage.heal_amount == 15.0,
 			"绷带是回复 15 点的药品")
@@ -406,16 +406,21 @@ func _run() -> void:
 	player.inventory.add_item(bandage)
 	player.health = 50.0
 	player.use_item(player.inventory.slots.find(bandage))
-	_check(player.health == 65.0, "绷带使用后恢复 15 点生命")
-	_check(not player.inventory.slots.has(bandage), "用药后药品被消耗")
-	player.inventory.add_item(bandage)
-	player.health = 95.0
+	_check(player.inventory.slots.has(bandage),
+			"没有出血时使用绷带不消耗（提示用途）")
+	# 轻度出血：绷带止血 + 附带 15 点回血
+	player.medical.injuries["bleed_minor"] = {"left": 600.0}
 	player.use_item(player.inventory.slots.find(bandage))
-	_check(player.health == 100.0, "生命接近满值时药品不会过量回复")
+	_check(not player.medical.injuries.has("bleed_minor"), "绷带止住轻度出血")
+	_check(player.health == 65.0, "绷带止血时附带恢复 15 点生命")
+	_check(not player.inventory.slots.has(bandage), "有效治疗后药品被消耗")
+	# 严重出血：绷带只能降级为轻度（有限缓解）
 	player.inventory.add_item(bandage)
-	player.health = 100.0
+	player.medical.injuries["bleed_severe"] = {}
 	player.use_item(player.inventory.slots.find(bandage))
-	_check(player.inventory.slots.has(bandage), "满血时使用药品不消耗")
+	_check(player.medical.injuries.has("bleed_minor")
+			and not player.medical.injuries.has("bleed_severe"),
+			"绷带对严重出血只降级为轻度（有限缓解）")
 	player.inventory.clear()
 
 	# 警察局：守卫、入口、枪柜物资
@@ -1250,6 +1255,159 @@ func _run() -> void:
 	_check(st.stamina >= 0.0 and st.stamina <= st.max_stamina(),
 			"暂停后精力仍在合法范围")
 	st.refill()
+
+	# —— 伤势与疾病系统 ————————————————————————————————
+	var med: HealthSystem = player.medical
+
+	# 骨折：移速降低、奔跑耗精提高；夹板固定后惩罚减轻但不立即痊愈
+	med.injuries["fracture"] = {"splinted": false, "recover_left": 24.0}
+	var speed_normal := player.move_speed
+	_check(player.current_move_speed() < speed_normal * 0.6,
+			"未固定骨折显著降低移速（%.0f → %.0f）"
+					% [speed_normal, player.current_move_speed()])
+	_check(med.run_cost_mult() > 1.5, "未固定骨折提高奔跑精力消耗")
+	med.injuries.fracture.splinted = true
+	_check(player.current_move_speed() > speed_normal * 0.75
+			and player.current_move_speed() < speed_normal * 0.85,
+			"夹板固定后移速惩罚减轻（%.0f）" % player.current_move_speed())
+	_check(not med.injuries.is_empty() and med.injuries.has("fracture"),
+			"夹板固定不等于立即痊愈")
+	# 固定 24 游戏小时后痊愈（直接推进恢复计时）
+	med.injuries.fracture.recover_left = 0.0
+	med.tick(0.05, false, false)
+	_check(not med.injuries.has("fracture"), "固定满 24 游戏小时后骨折解除")
+	_check(absf(player.current_move_speed() - speed_normal) < 0.01,
+			"骨折解除后移速修正完全恢复")
+
+	# 严重出血：持续扣血；急救包止住
+	var bleed_health_before := player.health
+	player.medical.injuries.clear()  # 清掉绷带测试段遗留的降级出血
+	player.medical.injuries["bleed_severe"] = {}
+	med.tick(1.0, false, false)
+	var lost := bleed_health_before - player.health
+	_check(lost > 0.4 and lost < 0.8, "严重出血每秒持续损失生命（实际 %.2f）" % lost)
+	var firstaid := load("res://data/items/med_firstaid.tres") as ItemData
+	player.inventory.clear()
+	player.inventory.add_item(firstaid)
+	player.use_item(player.inventory.slots.find(firstaid))
+	_check(not player.medical.injuries.has("bleed_severe"), "急救包止住严重出血")
+	_check(player.health > bleed_health_before - lost, "急救包同时恢复生命")
+	med.tick(1.0, false, false)
+	var after_heal := player.health
+	med.tick(1.0, false, false)
+	_check(absf(player.health - after_heal) < 0.01,
+			"出血止住后不再持续扣血（自然恢复另计）")
+
+	# 伤口感染：风险累积→触发→分级→抗生素逐步治疗
+	med.infection_risk = 0.999
+	med.injuries["bleed_minor"] = {"left": 600.0}
+	med.tick(1.0, false, false)
+	_check(med.illnesses.has("infection") and med.infection_label() == "轻度",
+			"感染风险满值触发轻度伤口感染")
+	var regen_before := med.stamina_regen_mult()
+	_check(regen_before < 1.0, "轻度感染降低精力恢复（×%.2f）" % regen_before)
+	med.illnesses.infection.treat_progress = 7.9  # 差一点到 8 小时恶化线
+	med.tick(10.0, false, false)
+	_check(med.infection_label() == "中度", "未治疗感染随游戏时间恶化到中度")
+	_check(med.stamina_cap_penalty() > 0.0, "中度感染降低精力上限")
+	var antibiotic := load("res://data/items/med_antibiotic.tres") as ItemData
+	player.inventory.clear()
+	player.inventory.add_item(antibiotic)
+	player.use_item(player.inventory.slots.find(antibiotic))
+	_check(bool(med.illnesses.infection.get("treating", false)), "抗生素开始治疗感染")
+	med.illnesses.infection.treat_progress = 2.95
+	med.tick(10.0, false, false)
+	_check(med.infection_label() == "轻度", "抗生素约 3 游戏小时降低一级感染")
+	med.illnesses.infection.treat_progress = 2.95
+	med.tick(10.0, false, false)
+	_check(not med.illnesses.has("infection"), "感染完全痊愈")
+	med.illnesses.erase("fever")  # 根因已愈；发热消退期惩罚属正常（发热段单独验证）
+	_check(med.stamina_regen_mult() == 1.0 and med.stamina_cap_penalty() == 0.0,
+			"感染痊愈后精力恢复与上限修正全部解除")
+	player.medical.injuries.erase("bleed_minor")
+	player.medical.infection_risk = 0.0
+
+	# 发热：随中/重度感染出现；退热药只缓解不清根因
+	med.illnesses["infection"] = {"stage": 2, "treat_progress": 0.0}
+	med.tick(0.05, false, false)
+	_check(med.illnesses.has("fever"), "中度感染引发发热")
+	var cd_with_fever := med.attack_cooldown_mult()
+	_check(cd_with_fever > 1.0, "发热降低攻击速度（冷却×%.2f）" % cd_with_fever)
+	var fever_med := load("res://data/items/med_fever.tres") as ItemData
+	player.inventory.clear()
+	player.inventory.add_item(fever_med)
+	player.use_item(player.inventory.slots.find(fever_med))
+	_check(med.fever_med_left > 0.0 and med.attack_cooldown_mult() == 1.0,
+			"退热药缓解发热惩罚（药效期内）")
+	_check(med.illnesses.has("fever") and med.illnesses.has("infection"),
+			"退热药不清除发热状态与根源感染")
+	med.illnesses.infection.stage = 1  # 根因降到轻度
+	med.tick(0.05, false, false)
+	_check(med.illnesses.has("fever"), "根因降级后发热进入消退期（尚未消失）")
+	med.tick(200.0, false, false)  # 3+ 游戏小时
+	_check(not med.illnesses.has("fever"), "根因感染减轻后发热逐步消退")
+	med.illnesses.erase("infection")
+
+	# 肠胃疾病：脱水触发；水分消耗加快；补水后恢复
+	player.water = 0.0
+	med.tick(70.0, false, true)  # 脱水 70 游戏秒
+	_check(med.illnesses.has("gastro"), "长时间脱水触发肠胃疾病")
+	_check(med.water_drain_mult() > 1.0, "肠胃疾病加快水分消耗")
+	_check(med.stamina_regen_mult() < 1.0, "肠胃疾病降低精力恢复")
+	player.water = 80.0  # 补水：停止恶化进入恢复
+	var gastro_regen := med.stamina_regen_mult()
+	_check(gastro_regen < 1.0, "肠胃疾病恢复期仍有轻度惩罚（×%.2f）" % gastro_regen)
+	med._gastro_recover_left = 0.01
+	med.tick(5.0, false, false)
+	_check(not med.illnesses.has("gastro"), "水分充足一段时间后肠胃疾病痊愈")
+	_check(med.water_drain_mult() == 1.0, "痊愈后水分消耗倍率恢复")
+	# 补液盐：补水 + 加速恢复
+	var rehy := load("res://data/items/med_rehydration.tres") as ItemData
+	med.illnesses["gastro"] = {"stage": 1}
+	med._gastro_recover_left = 0.0
+	player.inventory.clear()
+	player.inventory.add_item(rehy)
+	var water_before_rehy := player.water
+	player.use_item(player.inventory.slots.find(rehy))
+	_check(player.water > water_before_rehy, "补液盐恢复水分")
+	_check(med._gastro_recover_left > 0.0, "补液盐加速肠胃疾病恢复")
+	med.illnesses.clear()
+
+	# 止痛药：药效期内骨折惩罚减半，到期恢复
+	med.injuries["fracture"] = {"splinted": false, "recover_left": 24.0}
+	var speed_fracture := player.current_move_speed()
+	var painkiller := load("res://data/items/med_painkiller.tres") as ItemData
+	player.inventory.clear()
+	player.inventory.add_item(painkiller)
+	player.use_item(player.inventory.slots.find(painkiller))
+	_check(player.current_move_speed() > speed_fracture,
+			"止痛药缓解骨折移速惩罚")
+	_check(not med.injuries.is_empty() and med.injuries.has("fracture"),
+			"止痛药不治疗骨折本身")
+	med.painkiller_left = 0.0
+	_check(absf(player.current_move_speed() - speed_fracture) < 0.01,
+			"止痛药药效到期后惩罚重新生效")
+	med.injuries.clear()
+
+	# 修正叠加与死亡：多状态扣血叠加但各来源只算一次；死亡后不再扣血
+	med.injuries["bleed_severe"] = {}
+	med.illnesses["infection"] = {"stage": 3, "treat_progress": 0.0}
+	var health_before_combo := player.health
+	med.tick(1.0, false, false)
+	var combo_lost := health_before_combo - player.health
+	_check(absf(combo_lost - 0.9) < 0.05,
+			"严重出血+重度感染叠加扣血各算一次（预期 0.9，实际 %.2f）" % combo_lost)
+	player.dead = true
+	var health_at_death := player.health
+	med.tick(2.0, false, false)
+	_check(player.health == health_at_death, "死亡后不再继续扣血")
+	_check(med.attack_damage_mult() < 1.0 and med.move_speed_mult() < 1.0,
+			"重度感染同时降低攻击伤害与移速（无重复叠加）")
+	player.dead = false
+	player.medical.injuries.clear()
+	player.medical.illnesses.clear()
+	player.medical.infection_risk = 0.0
+	player.health = 100.0
 
 	# 存档 / 读档
 	var saved_day: int = main.get_node("DayNight").day_number

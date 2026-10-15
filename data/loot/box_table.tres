@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="LootTable" load_steps=23 format=3]
+[gd_resource type="Resource" script_class="LootTable" load_steps=29 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/loot_table.gd" id="1_table"]
 [ext_resource type="Script" path="res://scripts/data/loot_entry.gd" id="2_entry"]
@@ -13,6 +13,24 @@
 [ext_resource type="Resource" path="res://data/items/weapon_wood_spear.tres" id="11_spear"]
 [ext_resource type="Resource" path="res://data/items/weapon_fruit_knife.tres" id="12_fruit"]
 [ext_resource type="Resource" path="res://data/items/bottle_plastic.tres" id="13_bottle"]
+[ext_resource type="Resource" path="res://data/items/med_bandage.tres" id="14_band"]
+[ext_resource type="Resource" path="res://data/items/med_antiseptic.tres" id="15_antise"]
+[ext_resource type="Resource" path="res://data/items/med_painkiller.tres" id="16_pain"]
+
+[sub_resource type="Resource" id="LootEntry_13"]
+script = ExtResource("2_entry")
+item = ExtResource("14_band")
+weight = 10.0
+
+[sub_resource type="Resource" id="LootEntry_14"]
+script = ExtResource("2_entry")
+item = ExtResource("15_antise")
+weight = 6.0
+
+[sub_resource type="Resource" id="LootEntry_15"]
+script = ExtResource("2_entry")
+item = ExtResource("16_pain")
+weight = 5.0
 
 [sub_resource type="Resource" id="LootEntry_1"]
 script = ExtResource("2_entry")
@@ -69,4 +87,4 @@ item = ExtResource("13_bottle")
 weight = 6.0
 [resource]
 script = ExtResource("1_table")
-entries = Array[ExtResource("2_entry")]([SubResource("LootEntry_1"), SubResource("LootEntry_2"), SubResource("LootEntry_3"), SubResource("LootEntry_4"), SubResource("LootEntry_5"), SubResource("LootEntry_6"), SubResource("LootEntry_7"), SubResource("LootEntry_8"), SubResource("LootEntry_9"), SubResource("LootEntry_10"), SubResource("LootEntry_11")])
+entries = Array[ExtResource("2_entry")]([SubResource("LootEntry_1"), SubResource("LootEntry_2"), SubResource("LootEntry_3"), SubResource("LootEntry_4"), SubResource("LootEntry_5"), SubResource("LootEntry_6"), SubResource("LootEntry_7"), SubResource("LootEntry_8"), SubResource("LootEntry_9"), SubResource("LootEntry_10"), SubResource("LootEntry_11"), SubResource("LootEntry_13"), SubResource("LootEntry_14"), SubResource("LootEntry_15")])

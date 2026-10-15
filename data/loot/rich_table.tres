@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="LootTable" load_steps=29 format=3]
+[gd_resource type="Resource" script_class="LootTable" load_steps=39 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/loot_table.gd" id="1_table"]
 [ext_resource type="Script" path="res://scripts/data/loot_entry.gd" id="2_entry"]
@@ -16,6 +16,36 @@
 [ext_resource type="Resource" path="res://data/items/weapon_mod_spear.tres" id="14_spear"]
 [ext_resource type="Resource" path="res://data/items/weapon_combat_dagger.tres" id="15_dagger"]
 [ext_resource type="Resource" path="res://data/items/weapon_fire_axe.tres" id="16_axe"]
+[ext_resource type="Resource" path="res://data/items/med_firstaid.tres" id="17_first"]
+[ext_resource type="Resource" path="res://data/items/med_antibiotic.tres" id="18_abx"]
+[ext_resource type="Resource" path="res://data/items/med_splint.tres" id="19_splint"]
+[ext_resource type="Resource" path="res://data/items/med_fever.tres" id="20_fever"]
+[ext_resource type="Resource" path="res://data/items/med_rehydration.tres" id="21_rehy"]
+
+[sub_resource type="Resource" id="LootEntry_15"]
+script = ExtResource("2_entry")
+item = ExtResource("17_first")
+weight = 8.0
+
+[sub_resource type="Resource" id="LootEntry_16"]
+script = ExtResource("2_entry")
+item = ExtResource("18_abx")
+weight = 6.0
+
+[sub_resource type="Resource" id="LootEntry_17"]
+script = ExtResource("2_entry")
+item = ExtResource("19_splint")
+weight = 6.0
+
+[sub_resource type="Resource" id="LootEntry_18"]
+script = ExtResource("2_entry")
+item = ExtResource("20_fever")
+weight = 6.0
+
+[sub_resource type="Resource" id="LootEntry_19"]
+script = ExtResource("2_entry")
+item = ExtResource("21_rehy")
+weight = 6.0
 
 [sub_resource type="Resource" id="LootEntry_1"]
 script = ExtResource("2_entry")
@@ -87,4 +117,4 @@ item = ExtResource("16_axe")
 weight = 6.0
 [resource]
 script = ExtResource("1_table")
-entries = Array[ExtResource("2_entry")]([SubResource("LootEntry_1"), SubResource("LootEntry_2"), SubResource("LootEntry_3"), SubResource("LootEntry_4"), SubResource("LootEntry_5"), SubResource("LootEntry_6"), SubResource("LootEntry_7"), SubResource("LootEntry_8"), SubResource("LootEntry_9"), SubResource("LootEntry_10"), SubResource("LootEntry_11"), SubResource("LootEntry_12"), SubResource("LootEntry_13"), SubResource("LootEntry_14")])
+entries = Array[ExtResource("2_entry")]([SubResource("LootEntry_1"), SubResource("LootEntry_2"), SubResource("LootEntry_3"), SubResource("LootEntry_4"), SubResource("LootEntry_5"), SubResource("LootEntry_6"), SubResource("LootEntry_7"), SubResource("LootEntry_8"), SubResource("LootEntry_9"), SubResource("LootEntry_10"), SubResource("LootEntry_11"), SubResource("LootEntry_12"), SubResource("LootEntry_13"), SubResource("LootEntry_14"), SubResource("LootEntry_15"), SubResource("LootEntry_16"), SubResource("LootEntry_17"), SubResource("LootEntry_18"), SubResource("LootEntry_19")])

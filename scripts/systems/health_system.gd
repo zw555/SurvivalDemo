@@ -301,7 +301,8 @@ func apply_medicine(item: ItemData) -> String:
 				return "伤口消毒完毕：感染风险已清除，短期内伤口不会积累感染。"
 			return ""
 		"med_antibiotic":
-			if illnesses.has("infection") and not bool(illnesses.infection.treating):
+			if illnesses.has("infection") \
+					and not bool(illnesses.infection.get("treating", false)):
 				illnesses.infection.treating = true
 				return "开始服用抗生素：感染会逐步减轻（无需再次服用）。"
 			return ""
@@ -348,7 +349,8 @@ func sleep_hour() -> float:
 	if illnesses.has("infection") and int(illnesses.infection.stage) >= 3:
 		bleed += INFECTION_SEVERE_DPS * _hour_seconds()
 	# 疾病进展 / 恢复 / 药效按 1 小时推进
-	_tick_infection(_hour_seconds())
+	if illnesses.has("infection"):
+		_tick_infection(_hour_seconds())
 	_tick_fever(_hour_seconds())
 	_tick_gastro(_hour_seconds(), false)
 	for key in ["painkiller_left", "fever_med_left", "antiseptic_guard_left"]:
@@ -499,7 +501,8 @@ func summary_lines() -> Array[String]:
 		else:
 			lines.append("骨折 · 移动严重受限（用夹板固定）")
 	if illnesses.has("infection"):
-		var t := " · 抗生素治疗中" if bool(illnesses.infection.treating) else ""
+		var t := " · 抗生素治疗中" \
+				if bool(illnesses.infection.get("treating", false)) else ""
 		lines.append("伤口感染（%s）%s · %s" % [infection_label(), t, _infection_hint()])
 	if illnesses.has("fever"):
 		lines.append("发热 · 精力恢复下降、疲劳加快（退热药缓解；根源是感染）")
