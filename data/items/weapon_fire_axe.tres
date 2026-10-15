@@ -7,6 +7,7 @@ script = ExtResource("1_item")
 id = "weapon_fire_axe"
 display_name = "消防斧"
 kind = "weapon"
+tier = 4
 two_handed = true
 attack_cooldown = 0.7
 attack_range = 48.0

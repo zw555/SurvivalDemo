@@ -42,6 +42,47 @@ func _run() -> void:
 			"初始饮水 50 比饱食更紧")
 	_check(player.food_drain_per_sec == 0.3 and player.water_drain_per_sec == 0.5,
 			"消耗速率 ×3（食物 0.3 / 水 0.5 每秒）")
+
+	# —— 武器分级：tier 数据、伤害回归保护、初始木棒 ——
+	var expected_tiers := {
+		"weapon_wood_club": 1, "weapon_kitchen_knife": 1,
+		"weapon_fruit_knife": 1, "weapon_wood_spear": 1,
+		"weapon_pipe": 2, "weapon_shovel": 2,
+		"weapon_baton": 2, "weapon_combat_dagger": 2,
+		"weapon_machete": 3, "weapon_army_saber": 3, "weapon_metal_spear": 3,
+		"weapon_fire_axe": 4, "weapon_mod_spear": 4,
+		"weapon_pistol": 4, "weapon_rifle": 4,
+	}
+	var tiers_ok := true
+	for wid in expected_tiers:
+		var w: ItemData = load("res://data/items/%s.tres" % wid)
+		if w.tier != int(expected_tiers[wid]):
+			tiers_ok = false
+	_check(tiers_ok, "全部武器 tier 与分级表一致（16 件）")
+	var grenade_item: ItemData = load("res://data/items/weapon_grenade.tres")
+	_check(grenade_item.tier == 0, "手雷不参与武器分级")
+	_check((load("res://data/items/weapon_wood_club.tres") as ItemData).damage == 7
+			and (load("res://data/items/weapon_army_saber.tres") as ItemData).damage == 25
+			and (load("res://data/items/weapon_fire_axe.tres") as ItemData).damage == 26,
+			"分级未改动任何伤害数值（木棒7/军刀25/消防斧26）")
+	var melee_tier_max_ok := true  # 每级近战伤害上限不低于低级（改装矛23 vs 军刀25 允许，见表）
+	var tier_max_damage := {}
+	for wid in expected_tiers:
+		var w3: ItemData = load("res://data/items/%s.tres" % wid)
+		if w3.kind != ItemData.KIND_WEAPON:
+			continue
+		tier_max_damage[w3.tier] = maxi(int(tier_max_damage.get(w3.tier, 0)), w3.damage)
+	var tier_keys := tier_max_damage.keys()
+	tier_keys.sort()
+	for i in range(1, tier_keys.size()):
+		if int(tier_max_damage[tier_keys[i - 1]]) > int(tier_max_damage[tier_keys[i]]):
+			melee_tier_max_ok = false
+	_check(melee_tier_max_ok, "近战每级伤害上限随等级递增（8→14→25→26）")
+	var starter_club: ItemData = load("res://data/items/weapon_wood_club.tres")
+	_check(starter_club.display_name_tiered() == "木棒（破烂）", "显示名带分级后缀")
+	var hand_item: ItemData = player.equipped.get(ItemData.SLOT_HAND_R)
+	_check(hand_item != null and hand_item.id == "weapon_wood_club" and hand_item.tier == 1,
+			"开局手持木棒（1 级破烂）")
 	_check(get_nodes_in_group("zombies").size() > 0, "生成系统刷出了僵尸")
 	_check(get_nodes_in_group("pickups").is_empty(), "室外无散落物资（搜刮只在建筑内）")
 	_check(get_nodes_in_group("containers").size() > 0, "生成系统刷出了物资箱")
@@ -134,7 +175,8 @@ func _run() -> void:
 		if camp_area.has_point((node as Node2D).global_position):
 			no_zombie_in_camp = false
 	_check(no_zombie_in_camp, "营地内没有僵尸停留（安全区）")
-	_check(get_nodes_in_group("pickups").size() == pickups_before_death + 1, "死亡掉落随身物品")
+	_check(get_nodes_in_group("pickups").size() == pickups_before_death + 2,
+			"死亡掉落随身物品（1 罐头 + 开局手持的木棒）")
 	_check(player.inventory.item_count() == 0, "死亡后背包清空")
 
 	var camp: CampStorage = main.get_node("CampArea")

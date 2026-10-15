@@ -7,6 +7,7 @@ script = ExtResource("1_item")
 id = "weapon_pistol"
 display_name = "手枪"
 kind = "gun"
+tier = 4
 gun_ammo_type = "pistol"
 attack_cooldown = 0.5
 two_handed = true

@@ -623,9 +623,9 @@ func _refresh_equip_label() -> void:
 	elif hand.kind == ItemData.KIND_GUN:
 		var ammo := _player.ammo_pistol if hand.gun_ammo_type == "pistol" else _player.ammo_rifle
 		_equip_label.text = "武器：%s（伤害 %d · %s 剩余 %d）" % [
-			hand.display_name, hand.damage, hand.ammo_display_name(), ammo]
+			hand.display_name_tiered(), hand.damage, hand.ammo_display_name(), ammo]
 	else:
-		_equip_label.text = "武器：%s（伤害 %d）" % [hand.display_name, hand.damage]
+		_equip_label.text = "武器：%s（伤害 %d）" % [hand.display_name_tiered(), hand.damage]
 
 
 ## 装备面板：7 个部位槽，点击已装备的部位脱下放回背包。
@@ -646,7 +646,7 @@ func _refresh_equipment() -> void:
 		var button := _equip_grid.get_child(i) as Button
 		var item: ItemData = _player.equipped.get(slot)
 		if item != null:
-			button.text = "%s：%s" % [ItemData.SLOT_NAMES[slot], item.display_name]
+			button.text = "%s：%s" % [ItemData.SLOT_NAMES[slot], item.display_name_tiered()]
 			button.tooltip_text = item.describe()
 		else:
 			button.text = "%s：空" % ItemData.SLOT_NAMES[slot]
@@ -717,11 +717,17 @@ func _fill_grid(grid: GridContainer, inv: Inventory, is_storage: bool) -> void:
 			button.disabled = true
 			continue
 		var count := inv.count_at(index)
-		button.text = item.display_name + (" ×%d" % count if count > 1 else "")
-		button.tooltip_text = item.display_name + \
+		button.text = item.display_name_tiered() + (" ×%d" % count if count > 1 else "")
+		button.tooltip_text = item.display_name_tiered() + \
 				(" ×%d" % count if count > 1 else "") + "\n" + item.describe()
 		button.add_theme_font_size_override("font_size", 12)
 		_add_color_chip(button, item.color)
+		# 武器分级边框色：破烂灰 / 普通绿 / 精良蓝 / 稀有金
+		if item.tier >= 1 and ItemData.TIER_COLORS.has(item.tier):
+			var border := StyleBoxFlat.new()
+			border.border_color = ItemData.TIER_COLORS[item.tier]
+			border.set_border_width_all(2)
+			button.add_theme_stylebox_override("normal", border)
 
 
 func _make_slot_button(index: int, is_storage: bool) -> Button:
@@ -762,7 +768,7 @@ func _on_slot_pressed(index: int, is_storage: bool) -> void:
 		if item == null:
 			return
 		if _container.withdraw(index, _player.inventory):
-			show_message("取回了 %s" % item.display_name)
+			show_message("取回了 %s" % item.display_name_tiered())
 		else:
 			show_message("背包满了！")
 	elif _container != null and _container.open:

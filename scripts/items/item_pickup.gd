@@ -14,7 +14,7 @@ extends Interactable
 func get_prompt() -> String:
 	if item == null:
 		return "拾取"
-	return "拾取 %s" % item.display_name
+	return "拾取 %s" % item.display_name_tiered()
 
 
 func can_interact(_player: Player) -> bool:
@@ -35,4 +35,7 @@ func _refresh_visual() -> void:
 	if item == null or _visual == null:
 		return
 	_visual.color = item.color
-	_name_label.text = item.display_name
+	# 武器带分级后缀（如「军刀（精良）」），地上也能一眼看出等级
+	_name_label.text = item.display_name_tiered()
+	if item.tier >= 1 and ItemData.TIER_COLORS.has(item.tier):
+		_name_label.add_theme_color_override("font_color", ItemData.TIER_COLORS[item.tier])

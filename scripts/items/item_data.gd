@@ -35,6 +35,18 @@ const SLOT_NAMES := {
 	SLOT_BACKPACK: "背包",
 }
 
+## —— 武器分级（2026-10-15）：纯认知层，不改伤害数值 ——
+## 1 破烂（家里/郊区可得）→ 2 普通（五金店/警局）→ 3 精良（富物资箱）→ 4 稀有（警局/富箱）。
+## tier = 0 表示"不参与分级的物品"（材料/食物/手雷等）。
+const TIER_NAMES := {1: "破烂", 2: "普通", 3: "精良", 4: "稀有"}
+## 分级边框色：破烂灰 / 普通绿 / 精良蓝 / 稀有金（HUD 槽位与物品名配色用）。
+const TIER_COLORS := {
+	1: Color(0.62, 0.62, 0.62),
+	2: Color(0.45, 0.78, 0.45),
+	3: Color(0.42, 0.65, 0.95),
+	4: Color(0.95, 0.8, 0.35),
+}
+
 ## 一格距离对应的像素（玩家默认攻击距离）；两格武器 = 96。
 const ONE_TILE_RANGE := 48.0
 
@@ -72,6 +84,9 @@ const ONE_TILE_RANGE := 48.0
 @export var blast_radius := 0.0
 ## 同 id 可叠放数量：1 = 一格一件（默认）；>1 时背包把相同物品叠进同一格。
 @export var stack_size := 1
+## 武器分级：1 破烂 / 2 普通 / 3 精良 / 4 稀有；0 = 不分级（非武器或手雷）。
+## 只影响显示与玩家认知，不改任何伤害/冷却数值。
+@export var tier := 0
 @export var color := Color.WHITE
 ## note（纸条）：阅读后在地图上解锁的地点 id（main.gd 的 map_markers 键）。
 @export var reveals := ""
@@ -80,6 +95,13 @@ const ONE_TILE_RANGE := 48.0
 ## 武器攻击距离折算成"格"数（用于说明文字）。
 func range_in_tiles() -> int:
 	return maxi(1, roundi(maxf(attack_range, ONE_TILE_RANGE) / ONE_TILE_RANGE))
+
+
+## 显示名带分级后缀：武器（含枪械）→「军刀（精良）」；其他物品原样。
+func display_name_tiered() -> String:
+	if tier >= 1 and TIER_NAMES.has(tier):
+		return "%s（%s）" % [display_name, TIER_NAMES[tier]]
+	return display_name
 
 
 ## 弹药类型的显示名（枪械与弹盒共用）。
@@ -113,7 +135,10 @@ func describe() -> String:
 		KIND_NOTE:
 			return "情报纸条 · 按 E 阅读，在地图上标记一个地点"
 		KIND_WEAPON:
-			var parts: Array[String] = ["武器 · 伤害 %d · 距离 %d 格" % [damage, range_in_tiles()]]
+			var parts: Array[String] = []
+			if tier >= 1 and TIER_NAMES.has(tier):
+				parts.append("等级 %d·%s" % [tier, TIER_NAMES[tier]])
+			parts.append("伤害 %d · 距离 %d 格" % [damage, range_in_tiles()])
 			parts.append("双手" if two_handed else "单手")
 			if single_target:
 				parts.append("只命中最近目标")

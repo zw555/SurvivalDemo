@@ -97,6 +97,13 @@ func _ready() -> void:
 		camera.limit_bottom = map_size.y
 	_hud.bind(_player, _camp)
 	_hud.menu_backend = self
+	# 家里初始武器：一把木棒（1 级·破烂）。打普通丧尸要 6~9 下，能防身但
+	# 打不动——出门搜刮换装的动力（2026-10-15 设计决定）。读档时存档的
+	# 背包/装备会整体覆盖，不会重复发放。
+	var starter_club: ItemData = load("res://data/items/weapon_wood_club.tres")
+	if _player.equipped.is_empty() and _player.inventory.item_count() == 0:
+		_player.inventory.add_item(starter_club)
+		_player.equip_item(starter_club, ItemData.SLOT_HAND_R)
 	for node in _spawn_points.get_children():
 		if node is SpawnPoint:
 			node.spawn(zombie_density, loot_density)

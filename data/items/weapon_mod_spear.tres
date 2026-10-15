@@ -7,6 +7,7 @@ script = ExtResource("1_item")
 id = "weapon_mod_spear"
 display_name = "改装矛"
 kind = "weapon"
+tier = 4
 damage = 23
 attack_range = 96.0
 attack_arc_deg = 24.0
