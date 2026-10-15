@@ -1,4 +1,4 @@
-[gd_scene load_steps=112 format=3]
+[gd_scene load_steps=119 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/world/camp_storage.gd" id="2_camp"]
@@ -69,6 +69,27 @@ size = Vector2(2480, 40)
 
 [sub_resource type="RectangleShape2D" id="WallV"]
 size = Vector2(40, 1680)
+
+[sub_resource type="RectangleShape2D" id="BlockV220"]
+size = Vector2(20, 220)
+
+[sub_resource type="RectangleShape2D" id="BlockV310"]
+size = Vector2(20, 310)
+
+[sub_resource type="RectangleShape2D" id="BlockH200"]
+size = Vector2(200, 20)
+
+[sub_resource type="RectangleShape2D" id="StreetH340"]
+size = Vector2(340, 20)
+
+[sub_resource type="RectangleShape2D" id="StreetH360"]
+size = Vector2(360, 20)
+
+[sub_resource type="RectangleShape2D" id="StreetH400"]
+size = Vector2(400, 20)
+
+[sub_resource type="RectangleShape2D" id="CarShape"]
+size = Vector2(120, 60)
 
 [sub_resource type="RectangleShape2D" id="BuildingA"]
 size = Vector2(220, 140)
@@ -602,6 +623,145 @@ shape = SubResource("WallV")
 [node name="Right" type="CollisionShape2D" parent="Walls"]
 position = Vector2(2420, 800)
 shape = SubResource("WallV")
+
+[node name="StreetBlocks" type="StaticBody2D" parent="."]
+collision_layer = 1
+
+[node name="MarketPoliceGapShape" type="CollisionShape2D" parent="StreetBlocks"]
+position = Vector2(1640, 930)
+shape = SubResource("BlockV220")
+
+[node name="MarketPoliceGapVisual" type="Polygon2D" parent="StreetBlocks"]
+color = Color(0.48, 0.48, 0.45, 1)
+position = Vector2(1640, 930)
+polygon = PackedVector2Array(-10, -110, 10, -110, 10, 110, -10, 110)
+
+[node name="MilHospGapShape" type="CollisionShape2D" parent="StreetBlocks"]
+position = Vector2(1540, 305)
+shape = SubResource("BlockV310")
+
+[node name="MilHospGapVisual" type="Polygon2D" parent="StreetBlocks"]
+color = Color(0.48, 0.48, 0.45, 1)
+position = Vector2(1540, 305)
+polygon = PackedVector2Array(-10, -155, 10, -155, 10, 155, -10, 155)
+
+[node name="MarketHWGapShape" type="CollisionShape2D" parent="StreetBlocks"]
+position = Vector2(2040, 1190)
+shape = SubResource("BlockH200")
+
+[node name="MarketHWGapVisual" type="Polygon2D" parent="StreetBlocks"]
+color = Color(0.48, 0.48, 0.45, 1)
+position = Vector2(2040, 1190)
+polygon = PackedVector2Array(-100, -10, 100, -10, 100, 10, -100, 10)
+
+[node name="Street1Shape" type="CollisionShape2D" parent="StreetBlocks"]
+position = Vector2(310, 635)
+shape = SubResource("StreetH340")
+
+[node name="Street1Visual" type="Polygon2D" parent="StreetBlocks"]
+color = Color(0.48, 0.48, 0.45, 1)
+position = Vector2(310, 635)
+polygon = PackedVector2Array(-170, -10, 170, -10, 170, 10, -170, 10)
+
+[node name="Street2Shape" type="CollisionShape2D" parent="StreetBlocks"]
+position = Vector2(880, 635)
+shape = SubResource("StreetH360")
+
+[node name="Street2Visual" type="Polygon2D" parent="StreetBlocks"]
+color = Color(0.48, 0.48, 0.45, 1)
+position = Vector2(880, 635)
+polygon = PackedVector2Array(-180, -10, 180, -10, 180, 10, -180, 10)
+
+[node name="Street3Shape" type="CollisionShape2D" parent="StreetBlocks"]
+position = Vector2(1460, 635)
+shape = SubResource("StreetH360")
+
+[node name="Street3Visual" type="Polygon2D" parent="StreetBlocks"]
+color = Color(0.48, 0.48, 0.45, 1)
+position = Vector2(1460, 635)
+polygon = PackedVector2Array(-180, -10, 180, -10, 180, 10, -180, 10)
+
+[node name="Street4Shape" type="CollisionShape2D" parent="StreetBlocks"]
+position = Vector2(2060, 635)
+shape = SubResource("StreetH400")
+
+[node name="Street4Visual" type="Polygon2D" parent="StreetBlocks"]
+color = Color(0.48, 0.48, 0.45, 1)
+position = Vector2(2060, 635)
+polygon = PackedVector2Array(-200, -10, 200, -10, 200, 10, -200, 10)
+
+[node name="AbandonedCars" type="StaticBody2D" parent="."]
+collision_layer = 7
+
+[node name="Car1Shape" type="CollisionShape2D" parent="AbandonedCars"]
+position = Vector2(300, 700)
+shape = SubResource("CarShape")
+
+[node name="Car1Visual" type="Polygon2D" parent="AbandonedCars"]
+color = Color(0.45, 0.25, 0.2, 1)
+position = Vector2(300, 700)
+polygon = PackedVector2Array(-60, -30, 60, -30, 60, 30, -60, 30)
+
+[node name="Car1Roof" type="Polygon2D" parent="AbandonedCars"]
+color = Color(0.3, 0.42, 0.45, 1)
+position = Vector2(300, 700)
+polygon = PackedVector2Array(-28, -18, 28, -18, 34, 18, -34, 18)
+
+[node name="Car2Shape" type="CollisionShape2D" parent="AbandonedCars"]
+position = Vector2(1000, 560)
+shape = SubResource("CarShape")
+
+[node name="Car2Visual" type="Polygon2D" parent="AbandonedCars"]
+color = Color(0.35, 0.38, 0.42, 1)
+position = Vector2(1000, 560)
+polygon = PackedVector2Array(-60, -30, 60, -30, 60, 30, -60, 30)
+
+[node name="Car2Roof" type="Polygon2D" parent="AbandonedCars"]
+color = Color(0.25, 0.28, 0.32, 1)
+position = Vector2(1000, 560)
+polygon = PackedVector2Array(-28, -18, 28, -18, 34, 18, -34, 18)
+
+[node name="Car3Shape" type="CollisionShape2D" parent="AbandonedCars"]
+position = Vector2(1750, 690)
+shape = SubResource("CarShape")
+
+[node name="Car3Visual" type="Polygon2D" parent="AbandonedCars"]
+color = Color(0.4, 0.42, 0.3, 1)
+position = Vector2(1750, 690)
+polygon = PackedVector2Array(-60, -30, 60, -30, 60, 30, -60, 30)
+
+[node name="Car3Roof" type="Polygon2D" parent="AbandonedCars"]
+color = Color(0.28, 0.3, 0.25, 1)
+position = Vector2(1750, 690)
+polygon = PackedVector2Array(-28, -18, 28, -18, 34, 18, -34, 18)
+
+[node name="Car4Shape" type="CollisionShape2D" parent="AbandonedCars"]
+position = Vector2(2300, 950)
+shape = SubResource("CarShape")
+
+[node name="Car4Visual" type="Polygon2D" parent="AbandonedCars"]
+color = Color(0.3, 0.3, 0.35, 1)
+position = Vector2(2300, 950)
+polygon = PackedVector2Array(-60, -30, 60, -30, 60, 30, -60, 30)
+
+[node name="Car4Roof" type="Polygon2D" parent="AbandonedCars"]
+color = Color(0.2, 0.22, 0.26, 1)
+position = Vector2(2300, 950)
+polygon = PackedVector2Array(-28, -18, 28, -18, 34, 18, -34, 18)
+
+[node name="Car5Shape" type="CollisionShape2D" parent="AbandonedCars"]
+position = Vector2(1250, 1440)
+shape = SubResource("CarShape")
+
+[node name="Car5Visual" type="Polygon2D" parent="AbandonedCars"]
+color = Color(0.5, 0.42, 0.25, 1)
+position = Vector2(1250, 1440)
+polygon = PackedVector2Array(-60, -30, 60, -30, 60, 30, -60, 30)
+
+[node name="Car5Roof" type="Polygon2D" parent="AbandonedCars"]
+color = Color(0.35, 0.3, 0.2, 1)
+position = Vector2(1250, 1440)
+polygon = PackedVector2Array(-28, -18, 28, -18, 34, 18, -34, 18)
 
 [node name="Buildings" type="StaticBody2D" parent="."]
 collision_layer = 7

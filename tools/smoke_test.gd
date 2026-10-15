@@ -1003,6 +1003,36 @@ func _run() -> void:
 				if (points[i] as Vector2).distance_to(points[j]) < 100.0:
 					spread_ok = false
 	_check(spread_ok, "守卫生成点分散在建筑不同区域（点间距 ≥ 100px，不挤一处）")
+
+	# —— 第四批B 街区结构：边界墙 / 街区围墙 / 废弃车辆 ——
+	var boundary: StaticBody2D = main.get_node("Walls")
+	_check(boundary != null and boundary.collision_layer == 7 and boundary.get_child_count() >= 4,
+			"地图四周有边界墙（layer 7，玩家走不出去也看不到图外）")
+	var street_blocks: StaticBody2D = main.get_node("StreetBlocks")
+	var cars: StaticBody2D = main.get_node("AbandonedCars")
+	_check(street_blocks.collision_layer == 1, "街区围墙只挡移动不挡视线（layer 1，拐角后丧尸仍可见）")
+	_check(cars.collision_layer == 7 and cars.get_children().size() >= 10,
+			"废弃车辆挡视线可躲藏（layer 7，5 辆车身+车顶）")
+	var block_nav: RID = main.get_world_2d().navigation_map
+	var entries := {
+		"超市": Vector2(1900, 1240),
+		"警局": Vector2(1400, 1100),
+		"医院": Vector2(1780, 520),
+		"五金店": Vector2(2160, 1560),
+		"军营": Vector2(1280, 580),
+	}
+	var reach_ok := true
+	for bname in entries:
+		var path: PackedVector2Array = NavigationServer2D.map_get_path(
+				block_nav, Vector2(250, 1380), entries[bname], true)
+		if path.is_empty():
+			reach_ok = false
+			print("导航不可达: ", bname)
+	_check(reach_ok, "五栋建筑导航全部可达（围墙没有烘出孤岛）")
+	var detour_path: PackedVector2Array = NavigationServer2D.map_get_path(
+			block_nav, Vector2(1640, 700), Vector2(1640, 1120), true)
+	_check(not detour_path.is_empty() and (detour_path[detour_path.size() - 1] as Vector2).distance_to(Vector2(1640, 1120)) < 50.0,
+			"超市↔警局缝隙封墙后仍可绕行（封缝不封路）")
 	# 最后一个按位置统计的守卫断言已过：恢复自主游荡，供后续行为测试使用
 	for fz in wander_frozen:
 		if is_instance_valid(fz):
