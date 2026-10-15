@@ -790,14 +790,38 @@ func _run() -> void:
 	_check(main.quest_stage == "pilot_met", "与飞行员交谈接到物资清单")
 	pilot.interact(player)
 	_check(main.quest_stage == "pilot_met", "没备齐物资时交谈不会推进任务")
+	# —— 新撤离清单：配比 4/4/2/2/1、总量大于背包、缺项不可交付 ——
+	var req: Dictionary = main.SUPPLY_REQUIREMENTS
+	_check(int(req[ItemData.KIND_FOOD]) == 4 and int(req[ItemData.KIND_WATER]) == 4 \
+			and int(req[ItemData.KIND_FUEL]) == 2 and int(req[ItemData.KIND_MEDICINE]) == 2 \
+			and int(req[ItemData.KIND_AMMO]) == 1, "撤离清单为新配比：食物4 水4 汽油2 医疗2 弹药1")
+	var total_required := 0
+	for kind in req:
+		total_required += int(req[kind])
+	_check(total_required > player.base_slot_count,
+			"清单总量大于初始背包 8 格（刻意设计：强制分多趟）")
+	var supply_load := [
+		[load("res://data/items/food_canned.tres") as ItemData, 4],
+		[load("res://data/items/water_bottle.tres") as ItemData, 4],
+		[fuel, 2],
+		[load("res://data/items/med_bandage.tres") as ItemData, 2],
+		[load("res://data/items/ammo_pistol_box.tres") as ItemData, 1],
+	]
+	for i in supply_load.size():  # 缺任一类物资都不应可交付
+		player.inventory.clear()
+		player.inventory.resize_capacity(24)  # 测试用临时扩容，真实游戏靠分趟
+		for j in supply_load.size():
+			if j == i:
+				continue
+			for k in int(supply_load[j][1]):
+				player.inventory.add_item(supply_load[j][0])
+		_check(not main._has_all_supplies(), "缺一类物资时不可交付（第 %d 类缺席）" % i)
 	player.inventory.clear()
-	player.inventory.add_item(load("res://data/items/food_canned.tres") as ItemData)
-	player.inventory.add_item(load("res://data/items/food_canned.tres") as ItemData)
-	player.inventory.add_item(load("res://data/items/water_bottle.tres") as ItemData)
-	player.inventory.add_item(load("res://data/items/water_bottle.tres") as ItemData)
-	player.inventory.add_item(fuel)
-	player.inventory.add_item(load("res://data/items/med_bandage.tres") as ItemData)
-	_check(main._has_all_supplies(), "物资清单备齐（食物水汽油药品）")
+	player.inventory.resize_capacity(24)
+	for entry in supply_load:  # 全部备齐
+		for k in int(entry[1]):
+			player.inventory.add_item(entry[0])
+	_check(main._has_all_supplies(), "物资清单备齐（食物水汽油药品弹药）")
 	main._on_deliver_pressed()
 	_check(main.quest_stage == "supplied", "交付物资后任务进入汇合阶段")
 	_check(pilot.global_position.distance_to(main.PILOT_PAD_POSITION) < 2.0,

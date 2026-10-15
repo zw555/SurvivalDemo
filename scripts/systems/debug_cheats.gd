@@ -10,15 +10,19 @@ extends Node
 ##   F4  白天 / 黑夜切换
 ##   F5  回满状态（生命 / 食物 / 水 + 备弹各 120）
 
-## 标准测试包：撤离清单所需（食物 2 / 水 2 / 汽油 1 / 医疗 1）+ 战斗补给。
+## 标准测试包：撤离清单所需（食物 4 / 水 4 / 汽油 2 / 医疗 2 / 弹药 1）+ 战斗补给。
 const KIT_ITEMS: Array[String] = [
 	"res://data/items/food_canned.tres",
 	"res://data/items/food_canned.tres",
+	"res://data/items/food_canned.tres",
+	"res://data/items/food_canned.tres",
+	"res://data/items/water_bottle.tres",
+	"res://data/items/water_bottle.tres",
 	"res://data/items/water_bottle.tres",
 	"res://data/items/water_bottle.tres",
 	"res://data/items/fuel.tres",
+	"res://data/items/fuel.tres",
 	"res://data/items/med_firstaid.tres",
-	"res://data/items/med_bandage.tres",
 	"res://data/items/med_bandage.tres",
 	"res://data/items/ammo_pistol_box.tres",
 	"res://data/items/ammo_rifle_box.tres",
@@ -91,6 +95,8 @@ func _give_test_kit() -> void:
 	if player == null:
 		return
 	player.inventory.clear()
+	# 新清单 13 件 > 初始 8 格：调试包直接扩容，保证一次装下（测试用）
+	player.inventory.resize_capacity(24)
 	for path in KIT_ITEMS:
 		player.inventory.add_item(load(path) as ItemData)
 	player.ammo_pistol += AMMO_PER_BOX

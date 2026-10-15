@@ -22,12 +22,15 @@ const STAGE_RADIO := "radio_heard"
 const STAGE_MET := "pilot_met"
 const STAGE_SUPPLIED := "supplied"
 const STAGE_ESCAPED := "escaped"
-## 物资清单：{kind: 数量}——食物×2、水×2、汽油×1、医疗物资×1。
+## 物资清单：{kind: 数量}——食物×4、水×4、汽油×2、医疗物资×2、弹药×1。
+## 合计 13 件 > 初始背包 8 格：刻意让玩家必须分多趟、跑多栋楼
+## （弹药只在警局、汽油只在军营）。
 const SUPPLY_REQUIREMENTS := {
-	ItemData.KIND_FOOD: 2,
-	ItemData.KIND_WATER: 2,
-	ItemData.KIND_FUEL: 1,
-	ItemData.KIND_MEDICINE: 1,
+	ItemData.KIND_FOOD: 4,
+	ItemData.KIND_WATER: 4,
+	ItemData.KIND_FUEL: 2,
+	ItemData.KIND_MEDICINE: 2,
+	ItemData.KIND_AMMO: 1,
 }
 ## NPC 交付物资后瞬移到停机坪等候的位置（直升机旁）。
 const PILOT_PAD_POSITION := Vector2(1420, 380)
@@ -126,7 +129,7 @@ func _ready() -> void:
 	_quests.define_quest("evacuate", "撤离计划", [
 		{"id": "radio", "text": "收听收音机广播，找到撤离线索"},
 		{"id": "pilot", "text": "见到飞行员老周，接到物资清单"},
-		{"id": "supplies", "text": "收集物资：食物×2 · 水×2 · 汽油×1 · 医疗物资×1"},
+		{"id": "supplies", "text": "收集物资：食物×4 · 水×4 · 汽油×2 · 医疗物资×2 · 弹药×1"},
 	])
 	_hud.attach_quests(_quests)
 	_player.inventory_changed.connect(_refresh_supply_objective)
@@ -327,7 +330,7 @@ func _on_pilot_talk() -> void:
 			else:
 				_hud.show_npc_dialogue("飞行员 老周",
 						"还差着呢。\n\n" + _supplies_bbcode()
-						+ "\n\n超市有吃的，军营油料区有油，医院有药。全城都是死人，慢慢找。",
+						+ "\n\n超市有吃的，军营油料区有油，医院有药，警局弹药柜有子弹。全城都是死人，慢慢找。",
 						false)
 		STAGE_SUPPLIED:
 			_trigger_ending()
@@ -417,6 +420,7 @@ func _supplies_bbcode() -> String:
 	var names := {
 		ItemData.KIND_FOOD: "食物", ItemData.KIND_WATER: "水",
 		ItemData.KIND_FUEL: "汽油", ItemData.KIND_MEDICINE: "医疗物资",
+		ItemData.KIND_AMMO: "弹药",
 	}
 	var lines: Array[String] = []
 	for kind in SUPPLY_REQUIREMENTS:
@@ -434,6 +438,7 @@ func _refresh_supply_objective() -> void:
 	var names := {
 		ItemData.KIND_FOOD: "食物", ItemData.KIND_WATER: "水",
 		ItemData.KIND_FUEL: "汽油", ItemData.KIND_MEDICINE: "医疗物资",
+		ItemData.KIND_AMMO: "弹药",
 	}
 	var parts: Array[String] = []
 	for kind in SUPPLY_REQUIREMENTS:
