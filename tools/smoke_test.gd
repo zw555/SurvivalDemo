@@ -439,7 +439,7 @@ func _run() -> void:
 		if guard.global_position.x > 1560.0 and guard.global_position.x < 2000.0 \
 				and guard.global_position.y > 140.0 and guard.global_position.y < 460.0:
 			hosp_guards += 1
-	_check(hosp_guards == 3, "医院内有 3 只守卫僵尸")
+	_check(hosp_guards == 4, "医院内有 4 只守卫僵尸（2026-10-15 密度调整）")
 	var tank_in_pharmacy := false
 	for node in get_nodes_in_group("zombies"):
 		var tank := node as Zombie
@@ -490,7 +490,7 @@ func _run() -> void:
 		if pg.global_position.x > 1180.0 and pg.global_position.x < 1620.0 \
 				and pg.global_position.y > 760.0 and pg.global_position.y < 1040.0:
 			police_guards += 1
-	_check(police_guards == 3, "警察局内有 3 只守卫僵尸")
+	_check(police_guards == 4, "警察局内有 4 只守卫僵尸（2026-10-15 密度调整）")
 	var police_params := PhysicsPointQueryParameters2D.new()
 	police_params.position = Vector2(1400, 1040)  # 南墙入口门洞中心
 	var police_clear := true
@@ -883,6 +883,45 @@ func _run() -> void:
 				and mg.global_position.y > 150.0 and mg.global_position.y < 510.0:
 			mil_guards += 1
 	_check(mil_guards >= 4, "军事基地内有守卫僵尸")
+
+	# —— 守卫密度（2026-10-15）：超市5 / 警局4 / 医院4，分布不挤一处，室外不变 ——
+	# （按生成点名匹配：City3 散点恰好落在超市矩形边缘内，矩形匹配会误算）
+	var market_guards_cfg := 0
+	var police_guards_cfg := 0
+	var hospital_guards_cfg := 0
+	var market_points: Array = []
+	var police_points: Array = []
+	var hospital_points: Array = []
+	var outdoor_zombies_cfg := 0
+	for spawn_node2 in sp_root.get_children():
+		if not (spawn_node2 is SpawnPoint):
+			continue
+		var point: SpawnPoint = spawn_node2
+		var pname: String = point.name
+		if pname.begins_with("MarketGuard"):
+			market_guards_cfg += point.zombie_count
+			market_points.append(point.global_position)
+		elif pname.begins_with("PoliceGuard"):
+			police_guards_cfg += point.zombie_count
+			police_points.append(point.global_position)
+		elif pname.begins_with("HospitalGuard"):
+			hospital_guards_cfg += point.zombie_count
+			hospital_points.append(point.global_position)
+		elif pname.begins_with("Suburb") or pname.begins_with("City"):
+			outdoor_zombies_cfg += point.zombie_count
+	_check(market_guards_cfg == 5 and police_guards_cfg == 4 and hospital_guards_cfg == 4,
+			"守卫配置：超市 5 / 警局 4 / 医院 4（五金店 3、军营 6 维持）")
+	_check(outdoor_zombies_cfg == 8, "室外散点丧尸数量不变（1+1+0+2+2+2 = 8，回归保护）")
+	var spread_ok := true  # 同一建筑内守卫生成点互相拉开（≥100px），玩家可逐区清理
+	for points in [market_points, police_points, hospital_points]:
+		if points.size() < 2:
+			spread_ok = false
+			continue
+		for i in points.size():
+			for j in range(i + 1, points.size()):
+				if (points[i] as Vector2).distance_to(points[j]) < 100.0:
+					spread_ok = false
+	_check(spread_ok, "守卫生成点分散在建筑不同区域（点间距 ≥ 100px，不挤一处）")
 	# 最后一个按位置统计的守卫断言已过：恢复自主游荡，供后续行为测试使用
 	for fz in wander_frozen:
 		if is_instance_valid(fz):

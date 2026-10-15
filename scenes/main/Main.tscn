@@ -1624,6 +1624,14 @@ variants = [null, ExtResource("20_tank")]
 variant_weights = [65.0, 35.0]
 spawn_radius = 90.0
 
+[node name="MarketGuardCold" type="Marker2D" parent="SpawnPoints"]
+position = Vector2(2050, 930)
+script = ExtResource("14_sp")
+zombie_count = 2
+variants = [null, ExtResource("20_tank")]
+variant_weights = [65.0, 35.0]
+spawn_radius = 55.0
+
 [node name="HospitalGuard" type="Marker2D" parent="SpawnPoints"]
 position = Vector2(1780, 390)
 script = ExtResource("14_sp")
@@ -1635,6 +1643,12 @@ position = Vector2(1670, 250)
 script = ExtResource("14_sp")
 zombie_count = 1
 variants = [ExtResource("20_tank")]
+spawn_radius = 40.0
+
+[node name="HospitalGuardWard" type="Marker2D" parent="SpawnPoints"]
+position = Vector2(1900, 250)
+script = ExtResource("14_sp")
+zombie_count = 1
 spawn_radius = 40.0
 
 [node name="PoliceGuard" type="Marker2D" parent="SpawnPoints"]
@@ -1649,6 +1663,12 @@ script = ExtResource("14_sp")
 zombie_count = 1
 variants = [ExtResource("20_tank")]
 spawn_radius = 30.0
+
+[node name="PoliceGuardCell" type="Marker2D" parent="SpawnPoints"]
+position = Vector2(1270, 890)
+script = ExtResource("14_sp")
+zombie_count = 1
+spawn_radius = 35.0
 
 [node name="HardwareGuard" type="Marker2D" parent="SpawnPoints"]
 position = Vector2(2160, 1330)
