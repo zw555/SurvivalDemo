@@ -554,6 +554,45 @@ theme_override_font_sizes/font_size = 11
 custom_minimum_size = Vector2(220, 34)
 text = "任务列表"
 
+[node name="HealthButton" type="Button" parent="Root/PauseMenu/Center/Panel/MenuBox"]
+custom_minimum_size = Vector2(220, 34)
+text = "健康状态"
+
+[node name="HealthPanel" type="PanelContainer" parent="Root"]
+visible = false
+offset_left = 280.0
+offset_top = 120.0
+offset_right = 640.0
+offset_bottom = 560.0
+theme_override_styles/panel = SubResource("PanelStyle")
+
+[node name="HealthBox" type="VBoxContainer" parent="Root/HealthPanel"]
+theme_override_constants/separation = 8
+
+[node name="HealthTitle" type="Label" parent="Root/HealthPanel/HealthBox"]
+text = "健康状态"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.95, 0.85, 0.85, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="HealthVitals" type="Label" parent="Root/HealthPanel/HealthBox"]
+text = "生命 100 · 精力 100/100 · 疲劳 0（正常）"
+autowrap_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.9, 0.85, 1)
+theme_override_font_sizes/font_size = 12
+
+[node name="HealthScroll" type="ScrollContainer" parent="Root/HealthPanel/HealthBox"]
+custom_minimum_size = Vector2(0, 300)
+horizontal_scroll_mode = 0
+
+[node name="HealthList" type="VBoxContainer" parent="Root/HealthPanel/HealthBox/HealthScroll"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="HealthCloseButton" type="Button" parent="Root/HealthPanel/HealthBox"]
+custom_minimum_size = Vector2(0, 30)
+text = "关闭"
+
 [node name="QuestPanel" type="PanelContainer" parent="Root"]
 visible = false
 offset_left = 280.0

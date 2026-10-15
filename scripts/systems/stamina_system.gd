@@ -33,6 +33,10 @@ const SLEEP_RELIEF_PER_HOUR := 8.0 # 每睡 1 游戏小时降低的疲劳（8h=-
 ## 改昼夜时长后疲劳速率自动跟随，禁止用现实时间累计疲劳。
 var day_seconds := 600.0
 
+## 外部精力上限扣减值（疾病等来源；由 HealthSystem 同步注入）。
+## 与疲劳折算分开：上限 = max(40, 100 - 0.6×疲劳) - cap_penalty。
+var cap_penalty := 0.0
+
 var stamina := STAMINA_MAX_BASE
 var fatigue := 0.0
 
@@ -50,9 +54,10 @@ const STAGES: Array[Dictionary] = [
 
 ## —— 查询（惩罚统一从这里读，基础属性不被改写）——————————
 
-## 动态精力上限：max(40, 100 - 0.6×疲劳)。
+## 动态精力上限：max(40, 100 - 0.6×疲劳) 再减疾病扣减（不低于下限）。
 func max_stamina() -> float:
-	return maxf(STAMINA_CAP_MIN, STAMINA_MAX_BASE - FATIGUE_CAP_FACTOR * fatigue)
+	return maxf(STAMINA_CAP_MIN,
+			STAMINA_MAX_BASE - FATIGUE_CAP_FACTOR * fatigue - cap_penalty)
 
 
 func stage() -> Dictionary:
@@ -108,16 +113,18 @@ func add_fatigue(amount: float) -> void:
 
 ## 每帧结算：疲劳随游戏时间增长 + 奔跑消耗 / 休息恢复。
 ## delta 是游戏时间（暂停时本函数不被调用），in_camp 用于安全屋恢复档位。
-func tick(delta: float, sprinting: bool, in_camp: bool) -> void:
-	var fatigue_rate := FATIGUE_PER_DAY / day_seconds
+## 修正倍率由 HealthSystem 提供（伤势/疾病惩罚），与疲劳阶段惩罚相乘。
+func tick(delta: float, sprinting: bool, in_camp: bool,
+		regen_mult := 1.0, run_cost_mult := 1.0, fatigue_mult := 1.0) -> void:
+	var fatigue_rate := FATIGUE_PER_DAY / day_seconds * fatigue_mult
 	if sprinting:
 		fatigue_rate += FATIGUE_RUN_BONUS_PER_SEC
 	set_fatigue(fatigue + fatigue_rate * delta)
 	if sprinting:
-		stamina = maxf(0.0, stamina - RUN_COST_PER_SEC * delta)
+		stamina = maxf(0.0, stamina - RUN_COST_PER_SEC * run_cost_mult * delta)
 	else:
 		var regen := CAMP_REGEN_PER_SEC if in_camp else REST_REGEN_PER_SEC
-		stamina = minf(max_stamina(), stamina + regen * recovery_mult() * delta)
+		stamina = minf(max_stamina(), stamina + regen * recovery_mult() * regen_mult * delta)
 
 
 ## 消耗精力；不足时返回 false（不部分消耗）。
@@ -136,10 +143,10 @@ func try_melee() -> bool:
 	return true
 
 
-## 睡眠每游戏小时结算一次：疲劳降低、精力回满。返回实际降低量。
-func sleep_settle() -> float:
-	var relieved := minf(fatigue, SLEEP_RELIEF_PER_HOUR)
-	set_fatigue(fatigue - SLEEP_RELIEF_PER_HOUR)
+## 睡眠每游戏小时结算一次：疲劳降低（效率受疾病影响）、精力回满。返回实际降低量。
+func sleep_settle(efficiency := 1.0) -> float:
+	var relieved := minf(fatigue, SLEEP_RELIEF_PER_HOUR * efficiency)
+	set_fatigue(fatigue - SLEEP_RELIEF_PER_HOUR * efficiency)
 	stamina = max_stamina()
 	return relieved
 

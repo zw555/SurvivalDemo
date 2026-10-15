@@ -7,5 +7,6 @@ script = ExtResource("1_item")
 id = "med_bandage"
 display_name = "绷带"
 kind = "medicine"
+usage_desc = "止血：轻度出血直接止住；严重出血仅降级为轻度（有限缓解）；不治骨折和疾病（按 E 使用）"
 heal_amount = 15.0
 color = Color(0.88,0.9,0.92, 1)

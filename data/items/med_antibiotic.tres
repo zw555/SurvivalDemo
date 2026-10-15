@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = "med_antibiotic"
+display_name = "抗生素"
+kind = "medicine"
+usage_desc = "抗感染：治疗伤口感染，约 9 游戏小时逐步痊愈；对骨折/出血/发热无效（按 E 使用）"
+color = Color(0.6,0.75,0.5, 1)

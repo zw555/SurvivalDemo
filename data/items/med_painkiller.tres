@@ -7,5 +7,6 @@ script = ExtResource("1_item")
 id = "med_painkiller"
 display_name = "止痛药"
 kind = "medicine"
+usage_desc = "止痛：1 游戏小时内骨折等行动惩罚减半；不治疗伤势本身（按 E 使用）"
 heal_amount = 35.0
 color = Color(0.95,0.85,0.45, 1)

@@ -47,6 +47,8 @@ const ONE_TILE_RANGE := 48.0
 @export var water_value := 0.0
 ## medicine 使用的回复量：按 E 使用直接恢复生命（不超上限）。
 @export var heal_amount := 0.0
+## medicine 的用途说明（tooltip 与使用反馈用）；规则实现集中在 HealthSystem.MEDICINE_RULES。
+@export var usage_desc := ""
 @export var damage := 0
 @export var slot_bonus := 0
 @export var defense := 0
@@ -93,7 +95,8 @@ func describe() -> String:
 		KIND_WATER:
 			return "水 +%d" % int(water_value)
 		KIND_MEDICINE:
-			return "药品 · 生命 +%d（按 E 使用）" % int(heal_amount)
+			return usage_desc if usage_desc != "" \
+					else "药品 · 生命 +%d（按 E 使用）" % int(heal_amount)
 		KIND_GUN:
 			return "枪械 · 伤害 %d · 射程 %d 格 · 需 %s" % [damage, range_in_tiles(), ammo_display_name()]
 		KIND_AMMO:

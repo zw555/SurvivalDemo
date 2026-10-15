@@ -70,6 +70,8 @@ var _sprint_denied_accum := 0.0  # 精力不足提示的节流计时
 
 ## 精力/疲劳系统（参数与修正集中在该模块）；由 _ready 创建。
 var stamina: StaminaSystem
+## 伤势/疾病系统（出血、骨折、感染、发热、肠胃；修正统一由它提供）；由 _ready 创建。
+var medical: HealthSystem
 ## 安全屋区域引用（由 main.gd 注入），用于"安全屋内恢复更快"的判定。
 var camp_area: Area2D
 
@@ -87,6 +89,20 @@ func _ready() -> void:
 	add_child(stamina)
 	# 精力/疲劳变化统一并入 stats_changed，HUD 一条刷新路径
 	stamina.fatigue_stage_changed.connect(func(_label: String) -> void: stats_changed.emit())
+	medical = HealthSystem.new()
+	medical.name = "HealthSystem"
+	add_child(medical)
+	# 持续扣血（出血/重度感染）交回玩家结算（死亡判定集中一处）
+	medical.continuous_damage.connect(_apply_continuous_damage)
+	medical.condition_alert.connect(func(text: String, danger: int) -> void:
+		notify.emit(text)
+		if danger > 0:
+			_hurt_flash())
+	# 疾病压低精力上限：同步给 StaminaSystem 并收紧当前值
+	medical.condition_changed.connect(func() -> void:
+		stamina.cap_penalty = medical.stamina_cap_penalty()
+		stamina.stamina = minf(stamina.stamina, stamina.max_stamina())
+		stats_changed.emit())
 	_build_swing_arc()
 	_sfx = AudioStreamPlayer.new()
 	_sfx.bus = "Master"
@@ -113,9 +129,10 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 
-## 当前移速：基础移速 + 装备（鞋子等）的百分比加成。
+## 当前移速：基础移速 + 装备（鞋子等）的百分比加成，再乘伤势/疾病修正
+## （骨折影响最明显；状态解除后修正自动消失，基础值从不被改写）。
 func current_move_speed() -> float:
-	return move_speed * (1.0 + speed_bonus_pct() / 100.0)
+	return move_speed * (1.0 + speed_bonus_pct() / 100.0) * medical.move_speed_mult()
 
 
 func in_camp() -> bool:
@@ -170,7 +187,11 @@ func _process(delta: float) -> void:
 			and _sprint_denied_accum <= 0.0 and not stamina.can_sprint():
 		notify.emit("太累了，跑不动了……先缓一缓")
 		_sprint_denied_accum = 2.0
-	stamina.tick(delta, _sprinting, in_camp())
+	# 伤势/疾病修正：精力恢复 × 疾病倍率、奔跑消耗 × 骨折倍率、疲劳 × 疾病倍率
+	medical.tick(delta, _sprinting, water <= 0.0)
+	stamina.tick(delta, _sprinting, in_camp(),
+			medical.stamina_regen_mult(), medical.run_cost_mult(),
+			medical.fatigue_rate_mult())
 
 
 ## 当前使用的武器：左右手中伤害更高的一件；空手返回 null。
@@ -184,20 +205,21 @@ func current_weapon() -> ItemData:
 	return best
 
 
-## 当前攻击力：左右手武器中伤害最高的一件，否则空手。
+## 当前攻击力：左右手武器中伤害最高的一件，否则空手；重度感染按统一修正降低。
 func current_damage() -> int:
 	var weapon := current_weapon()
-	return maxi(unarmed_damage, weapon.damage) if weapon != null else unarmed_damage
+	var base := maxi(unarmed_damage, weapon.damage) if weapon != null else unarmed_damage
+	return maxi(1, roundi(base * medical.attack_damage_mult()))
 
 
 ## 当前攻击冷却：武器的 attack_cooldown（0 = 玩家默认）。匕首类更快。
-## 极度疲劳时冷却按统一修正变长（攻速 -25%），基础值不被改写。
+## 极度疲劳与发热按统一修正变长，基础值不被改写。
 func current_attack_cooldown() -> float:
 	var weapon := current_weapon()
 	var base := attack_cooldown
 	if weapon != null and weapon.attack_cooldown > 0.0:
 		base = weapon.attack_cooldown
-	return base * stamina.attack_cooldown_mult()
+	return base * stamina.attack_cooldown_mult() * medical.attack_cooldown_mult()
 
 
 ## 当前攻击距离：武器的 attack_range（0 = 默认一格）。
@@ -264,15 +286,7 @@ func use_item(index: int, aim: Vector2 = Vector2.ZERO) -> void:
 			_play_sfx(SFX_PICKUP)
 			stats_changed.emit()
 		ItemData.KIND_MEDICINE:
-			if health >= max_health:
-				notify.emit("现在不需要用 %s" % item.display_name)
-				return
-			var healed := minf(item.heal_amount, max_health - health)
-			health += healed
-			inventory.remove_item(index)
-			notify.emit("使用了 %s（生命 +%d）" % [item.display_name, int(healed)])
-			_play_sfx(SFX_PICKUP)
-			stats_changed.emit()
+			_use_medicine(index, item)
 		ItemData.KIND_AMMO:
 			if item.ammo_type == "pistol":
 				ammo_pistol += item.ammo_amount
@@ -404,6 +418,48 @@ func _after_equipment_changed() -> void:
 	equipped_changed.emit()
 
 
+## 药品使用：按物品 id 分发到 HealthSystem（规则集中在 MEDICINE_RULES/apply_medicine）。
+## 没有可治疗的状态时提示原因且不消耗——不允许无意义浪费药品。
+func _use_medicine(index: int, item: ItemData) -> void:
+	# 补液盐特殊：先补水（普通饮水规则），再走疾病缓解
+	if item.id == "med_rehydration":
+		if water >= max_water - 0.5 and not medical.illnesses.has("gastro"):
+			notify.emit("水分充足也没有肠胃问题，不需要补液")
+			return
+		water = minf(max_water, water + item.water_value)
+		var extra := medical.apply_rehydration()
+		inventory.remove_item(index)
+		notify.emit("使用了 %s（饮水 +%d）%s" % [item.display_name, int(item.water_value),
+				("· " + extra) if extra != "" else ""])
+		_play_sfx(SFX_PICKUP)
+		stats_changed.emit()
+		return
+	var result := medical.apply_medicine(item)
+	# 急救包等同时带回复量的药：有治疗对象时顺带回血
+	if result != "" and item.heal_amount > 0.0 and health < float(max_health):
+		var healed := minf(item.heal_amount, max_health - health)
+		health += healed
+		result += "，生命 +%d" % int(healed)
+	if result == "":
+		notify.emit("%s现在用不上：%s" % [item.display_name, item.usage_desc])
+		return
+	inventory.remove_item(index)
+	notify.emit("使用了 %s：%s" % [item.display_name, result])
+	_play_sfx(SFX_PICKUP)
+	stats_changed.emit()
+
+
+## 持续扣血（出血 / 重度感染）；与受击伤害分开结算（无护甲、无击退）。
+func _apply_continuous_damage(amount: float) -> void:
+	if dead or amount <= 0.0:
+		return
+	health = maxf(0.0, health - amount)
+	if health <= 0.0:
+		_die()
+	else:
+		stats_changed.emit()
+
+
 ## 恢复生命值（睡觉等来源）；上限为最大生命值。
 func heal(amount: int) -> void:
 	if dead or amount <= 0:
@@ -449,6 +505,8 @@ func take_damage(amount: int, from_direction := Vector2.ZERO) -> void:
 	# 护甲 = 百分比减伤（总防 ÷20），减完至少剩 1 点——防具降低风险但无法免疫伤害。
 	var final_damage := maxi(1, roundi(amount * (1.0 - minf(float(total_defense()), 20.0) / 20.0)))
 	health = maxf(0.0, health - final_damage)
+	# 伤势结算：重击可能出血/骨折（概率与阈值在 HealthSystem，来源由伤害轻重区分）
+	medical.on_damaged(final_damage, final_damage >= 25)
 	_knockback = from_direction.normalized() * knockback_force
 	_hurt_flash()
 	_play_sfx(SFX_HURT)
@@ -463,11 +521,18 @@ func take_damage(amount: int, from_direction := Vector2.ZERO) -> void:
 
 ## 死亡后由主场景把玩家送回营地并调用。
 ## 精力回满（死里逃生喘口气）；疲劳保留——长距离探索的负担不会因死亡消失。
+## 伤势/疾病清空：死里逃生相当于重新来过，骨折/感染不再延续（否则无医疗时是死循环）。
 func revive() -> void:
 	dead = false
 	health = float(max_health)
 	_knockback = Vector2.ZERO
 	stamina.refill(true)
+	medical.injuries.clear()
+	medical.illnesses.clear()
+	medical.infection_risk = 0.0
+	medical.painkiller_left = 0.0
+	medical.fever_med_left = 0.0
+	medical.condition_changed.emit()
 	stats_changed.emit()
 
 
@@ -485,6 +550,7 @@ func get_save_data() -> Dictionary:
 		"water": water,
 		"stamina": stamina.stamina,
 		"fatigue": stamina.fatigue,
+		"medical": medical.to_save_data(),
 		"ammo_pistol": ammo_pistol,
 		"ammo_rifle": ammo_rifle,
 		"inventory": inv_items,
@@ -503,6 +569,8 @@ func load_save_data(data: Dictionary) -> void:
 	stamina.set_fatigue(float(data.get("fatigue", 0.0)))
 	stamina.stamina = clampf(float(data.get("stamina", stamina.max_stamina())),
 			0.0, stamina.max_stamina())
+	medical.load_save_data(data.get("medical", {}))
+	stamina.cap_penalty = medical.stamina_cap_penalty()
 	equipped.clear()
 	var equip_data: Dictionary = data.get("equipped", {})
 	for slot in equip_data:
@@ -559,8 +627,8 @@ func _attack_toward(aim: Vector2) -> void:
 				nearest_dist = d
 				nearest = z
 		targets = [nearest]  # 矛只刺中最近的一个
-	# 疲劳使命中率下降：现有战斗是范围判定必中，映射为本次攻击整体落空（一次概率判定）
-	if not targets.is_empty() and randf() < stamina.hit_miss_chance():
+	# 疲劳/重度感染使命中率下降：现有战斗是范围判定必中，映射为本次攻击整体落空（一次概率判定）
+	if not targets.is_empty() and randf() < stamina.hit_miss_chance() + medical.hit_miss_chance():
 		var host := get_tree().current_scene
 		if host != null:
 			FloatingText.spawn(host, global_position, "落空", Color(0.8, 0.8, 0.8))
@@ -660,8 +728,9 @@ func _drop_everything() -> void:
 
 
 func _drain_survival_stats(delta: float) -> void:
-	food = maxf(0.0, food - food_drain_per_sec * delta)
-	water = maxf(0.0, water - water_drain_per_sec * delta)
+	# 肠胃疾病加快水分/食物消耗（状态解除后倍率自动回到 1，基础速率不被改写）
+	food = maxf(0.0, food - food_drain_per_sec * medical.food_drain_mult() * delta)
+	water = maxf(0.0, water - water_drain_per_sec * medical.water_drain_mult() * delta)
 	var drain_damage := 0.0
 	if food <= 0.0:
 		drain_damage += starvation_damage_per_sec * delta

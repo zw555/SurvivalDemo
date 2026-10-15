@@ -113,6 +113,10 @@ func _ready() -> void:
 	_player.camp_area = _camp
 	_player.stamina.day_seconds = _day_night.day_seconds + _day_night.night_seconds
 	_player.stamina.fatigue_stage_changed.connect(_on_fatigue_stage_changed)
+	# 伤势/疾病：昼夜引用（游戏小时折算）、状态变化提示（恶化=警告色）
+	_player.medical.day_night = _day_night
+	_player.medical.condition_alert.connect(func(text: String, danger: int) -> void:
+		_hud.show_message(text, 3.0 if danger == 0 else 5.0))
 	_bed.menu_requested.connect(_on_bed_menu)
 	_hud.sleep_confirmed.connect(_on_sleep_confirmed)
 	# 任务管理：撤离主线。目标文本里的物资进度随背包变化实时刷新。
@@ -248,18 +252,26 @@ func _on_bed_menu() -> void:
 
 
 ## 睡眠结算：按游戏小时逐段推进时间（昼夜/天数信号照常触发），
-## 每小时疲劳降低、精力回满；饥饿/饮水按现有速率照常消耗（可饿死）。
+## 每小时疲劳降低（效率受疾病影响）、精力回满；饥饿/饮水按现有速率照常消耗（可饿死）。
+## 伤势/疾病同步按游戏小时推进（出血继续扣血、感染进展、药效消耗、骨折静养恢复）——
+## 用 medical.sleep_hour() 一次性返回该小时扣血量，与实时 tick 不重复结算。
 ## 保留原床铺回血（最大生命值 20%）。暂停状态打开不了本流程（交互被暂停拦截）。
 func _on_sleep_confirmed(hours: float) -> void:
 	if _player.dead:
 		return
 	var fatigue_before := _player.stamina.fatigue
+	var condition_damage := 0.0
 	for i in int(hours):
 		var secs := _day_night.advance_hours(1.0)
-		_player.stamina.sleep_settle()
+		_player.stamina.sleep_settle(_player.medical.sleep_efficiency())
+		condition_damage += _player.medical.sleep_hour()
+		if condition_damage >= 1.0:
+			_player._apply_continuous_damage(condition_damage)
+			condition_damage = 0.0
 		if not _player.drain_survival_seconds(secs):
 			_hud.show_message("你在睡梦中饿倒了……", 4.0)
 			return
+	_player._apply_continuous_damage(condition_damage)
 	_bed.note_slept()
 	var relieved := roundi(fatigue_before - _player.stamina.fatigue)
 	_player.heal(int(round(_player.max_health * 20.0 / 100.0)))

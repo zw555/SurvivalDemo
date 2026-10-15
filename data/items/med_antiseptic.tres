@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = "med_antiseptic"
+display_name = "消毒剂"
+kind = "medicine"
+usage_desc = "伤口消毒：清除感染风险累积，6 游戏小时内伤口不会积累感染（按 E 使用）"
+color = Color(0.55,0.8,0.85, 1)

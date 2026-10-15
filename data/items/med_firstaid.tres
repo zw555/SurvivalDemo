@@ -7,5 +7,6 @@ script = ExtResource("1_item")
 id = "med_firstaid"
 display_name = "急救包"
 kind = "medicine"
+usage_desc = "急救：生命 +70，可止住严重出血；不治骨折和疾病（按 E 使用）"
 heal_amount = 70.0
 color = Color(0.9,0.3,0.28, 1)
