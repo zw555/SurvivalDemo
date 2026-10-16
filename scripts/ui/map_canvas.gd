@@ -4,7 +4,7 @@ extends Control
 ## 已发现/已探索的地点画标记与名称，玩家位置画白点。
 ## 数据由 main.gd 注入（fog / buildings / markers 引用，markers 是同一字典的引用）。
 
-@export var map_size := Vector2(2400, 1600)
+@export var map_size := Vector2(4800, 3200)
 
 var fog: FogOfWar
 var buildings: Array = []

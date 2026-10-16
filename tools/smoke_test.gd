@@ -145,7 +145,12 @@ func _run() -> void:
 		await physics_frame
 	_check(player.health < health_before, "断粮后血量持续下降")
 
-	var zombie: Zombie = get_first_node_in_group("zombies")
+	var zscene_early := load("res://scenes/enemies/Zombie.tscn") as PackedScene
+	var zombie: Zombie = zscene_early.instantiate()
+	main.add_child(zombie)
+	zombie.global_position = player.global_position + Vector2(400, 0)  # 安全区外空地（确定性：不随机挑场上的丧尸，避免瞬移进某栋建筑污染迷雾断言）
+	for i in 2:
+		await physics_frame
 	health_before = player.health
 	player.global_position = zombie.global_position + Vector2(34, 0)
 	for i in 40:
@@ -180,7 +185,7 @@ func _run() -> void:
 	_check(player.inventory.item_count() == 0, "死亡后背包清空")
 
 	var camp: CampStorage = main.get_node("CampArea")
-	_check(camp.half_size == Vector2(350, 200), "安全区覆盖整个屋子（客厅/厨房/卧室/厕所）")
+	_check(camp.half_size == Vector2(280, 190), "安全区覆盖整个屋子（客厅/厨房/卧室）")
 	for i in 3:
 		await physics_frame
 	_check(player.nearest_interactable() == camp, "营地内探测到可交互的仓库")
@@ -395,17 +400,17 @@ func _run() -> void:
 			shelf_items += shelf.storage.item_count()
 			if some_shelf == null:
 				some_shelf = shelf
-	_check(shelf_count == 6 and shelf_items >= 18, "超市 6 排货架且初始铺满货")
+	_check(shelf_count == 6 and shelf_items >= 10, "超市 6 排货架且按末世稀缺铺货")
 	var market_guards := 0
 	for node in get_nodes_in_group("zombies"):
 		var guard := node as Zombie
-		if guard.global_position.x > 1660.0 and guard.global_position.x < 2140.0 \
-				and guard.global_position.y > 820.0 and guard.global_position.y < 1180.0:
+		if guard.global_position.x > 2600.0 and guard.global_position.x < 3400.0 \
+				and guard.global_position.y > 1800.0 and guard.global_position.y < 2400.0:
 			market_guards += 1
 	_check(market_guards >= 2, "超市内有守卫僵尸")
 	var space: PhysicsDirectSpaceState2D = main.get_world_2d().direct_space_state
 	var point_params := PhysicsPointQueryParameters2D.new()
-	point_params.position = Vector2(1900, 1172)  # 南墙入口门洞中心
+	point_params.position = Vector2(3000, 2392)  # 南墙入口门洞中心
 	var entrance_clear := true
 	for hit in space.intersect_point(point_params):
 		if hit.collider is StaticBody2D:
@@ -432,24 +437,24 @@ func _run() -> void:
 				or med_box.display_name == "急救柜" or med_box.display_name == "床头柜"):
 			med_containers += 1
 			med_stock += med_box.storage.item_count()
-	_check(med_containers == 4 and med_stock >= 8, "医院药房货架/急救柜/床头柜备有药品")
+	_check(med_containers == 4 and med_stock >= 4, "医院药房货架/急救柜/床头柜备有药品（末世稀缺）")
 	var hosp_guards := 0
 	for node in get_nodes_in_group("zombies"):
 		var guard := node as Zombie
-		if guard.global_position.x > 1560.0 and guard.global_position.x < 2000.0 \
-				and guard.global_position.y > 140.0 and guard.global_position.y < 460.0:
+		if guard.global_position.x > 2560.0 and guard.global_position.x < 3456.0 \
+				and guard.global_position.y > 200.0 and guard.global_position.y < 872.0:
 			hosp_guards += 1
 	_check(hosp_guards == 4, "医院内有 4 只守卫僵尸（2026-10-15 密度调整）")
 	var tank_in_pharmacy := false
 	for node in get_nodes_in_group("zombies"):
 		var tank := node as Zombie
-		if tank.variant != null and tank.global_position.x > 1560.0 \
-				and tank.global_position.x < 1780.0 and tank.global_position.y > 140.0 \
-				and tank.global_position.y < 340.0:
+		if tank.variant != null and tank.global_position.x > 2560.0 \
+				and tank.global_position.x < 3040.0 and tank.global_position.y > 200.0 \
+				and tank.global_position.y < 616.0:
 			tank_in_pharmacy = true
 	_check(tank_in_pharmacy, "药房由强壮丧尸看守")
 	var hosp_params := PhysicsPointQueryParameters2D.new()
-	hosp_params.position = Vector2(1780, 452)  # 南墙入口门洞中心
+	hosp_params.position = Vector2(3010, 864)  # 南墙入口门洞中心
 	var hosp_clear := true
 	for hit in space.intersect_point(hosp_params):
 		if hit.collider is StaticBody2D:
@@ -487,12 +492,12 @@ func _run() -> void:
 	var police_guards := 0
 	for node in get_nodes_in_group("zombies"):
 		var pg := node as Zombie
-		if pg.global_position.x > 1180.0 and pg.global_position.x < 1620.0 \
-				and pg.global_position.y > 760.0 and pg.global_position.y < 1040.0:
+		if pg.global_position.x > 3640.0 and pg.global_position.x < 4152.0 \
+				and pg.global_position.y > 1820.0 and pg.global_position.y < 2220.0:
 			police_guards += 1
 	_check(police_guards == 4, "警察局内有 4 只守卫僵尸（2026-10-15 密度调整）")
 	var police_params := PhysicsPointQueryParameters2D.new()
-	police_params.position = Vector2(1400, 1040)  # 南墙入口门洞中心
+	police_params.position = Vector2(3890, 2212)  # 南墙入口门洞中心
 	var police_clear := true
 	for hit in space.intersect_point(police_params):
 		if hit.collider is StaticBody2D:
@@ -502,7 +507,7 @@ func _run() -> void:
 	for node in get_nodes_in_group("containers"):
 		if node.display_name == "枪柜":
 			gunlocker_stock = node.storage.item_count()
-	_check(gunlocker_stock == 5, "枪柜存有枪械、弹药与手雷")
+	_check(gunlocker_stock == 2, "枪柜只存手枪与一份弹药（末世稀缺：武器不再是货架商品）")
 
 	# 五金店：材料货架、守卫僵尸、入口、工具柜台与掉落表
 	var hardware: Node2D = main.get_node("HardwareStore")
@@ -518,18 +523,18 @@ func _run() -> void:
 			for item in hw_shelf.storage.slots:
 				if item != null and item.kind == ItemData.KIND_MATERIAL:
 					hw_material_kinds[item.id] = true
-	_check(hw_shelves == 7, "五金店有 6 排货架 + 1 个工具柜台")
-	_check(hw_stock >= 14, "五金店货架上备有物资")
+	_check(hw_shelves == 5, "五金店有 4 排货架 + 1 个工具柜台（末世稀缺：货架减半）")
+	_check(hw_stock >= 8, "五金店货架上备有物资")
 	_check(hw_material_kinds.size() >= 6, "货架上有至少 6 种制作材料")
 	var hw_guards := 0
 	for node in get_nodes_in_group("zombies"):
 		var hw_guard := node as Zombie
-		if hw_guard.global_position.x > 1940.0 and hw_guard.global_position.x < 2380.0 \
-				and hw_guard.global_position.y > 1200.0 and hw_guard.global_position.y < 1480.0:
+		if hw_guard.global_position.x > 1560.0 and hw_guard.global_position.x < 2008.0 \
+				and hw_guard.global_position.y > 760.0 and hw_guard.global_position.y < 1080.0:
 			hw_guards += 1
 	_check(hw_guards >= 2, "五金店内有守卫僵尸")
 	var hw_params := PhysicsPointQueryParameters2D.new()
-	hw_params.position = Vector2(2160, 1472)  # 南墙入口门洞中心
+	hw_params.position = Vector2(1770, 1072)  # 南墙入口门洞中心
 	var hw_clear := true
 	for hit in space.intersect_point(hw_params):
 		if hit.collider is StaticBody2D:
@@ -871,11 +876,11 @@ func _run() -> void:
 	thoughts.evaluate()
 	_check(thoughts.trigger_count("hunger") == 1, "饥饿想法受冷却保护不立即重复")
 	var thought_pos := player.global_position
-	player.global_position = Vector2(1900, 1172)
+	player.global_position = Vector2(3000, 2392)
 	thoughts.skip_display_wait()
 	thoughts.evaluate()
 	_check(thoughts.trigger_count("discover_market") == 1, "首次靠近超市触发「发现建筑」")
-	player.global_position = Vector2(1400, 700)
+	player.global_position = Vector2(3890, 2260)
 	thoughts.skip_display_wait()
 	thoughts.evaluate()
 	_check(thoughts.trigger_count("discover_police") == 1, "首次靠近警局触发「发现建筑」")
@@ -953,15 +958,15 @@ func _run() -> void:
 			for item in mil_box.storage.slots:
 				if item != null and item.kind == ItemData.KIND_FUEL:
 					mil_fuel += 1
-	_check(mil_stock >= 6, "军需柜与油桶备有物资")
+	_check(mil_stock >= 5, "军需柜与油桶备有物资（末世稀缺：仅够清单+少量余量）")
 	_check(mil_fuel >= 2, "油桶里有汽油")
 	var fuel := load("res://data/items/fuel.tres") as ItemData
 	_check(fuel.kind == ItemData.KIND_FUEL and fuel.stack_size == 2, "汽油是可叠 2 个的燃料")
 	var mil_guards := 0
 	for node in get_nodes_in_group("zombies"):
 		var mg := node as Zombie
-		if mg.global_position.x > 1040.0 and mg.global_position.x < 1520.0 \
-				and mg.global_position.y > 150.0 and mg.global_position.y < 510.0:
+		if mg.global_position.x > 240.0 and mg.global_position.x < 1200.0 \
+				and mg.global_position.y > 240.0 and mg.global_position.y < 960.0:
 			mil_guards += 1
 	_check(mil_guards >= 4, "军事基地内有守卫僵尸")
 
@@ -1004,35 +1009,36 @@ func _run() -> void:
 					spread_ok = false
 	_check(spread_ok, "守卫生成点分散在建筑不同区域（点间距 ≥ 100px，不挤一处）")
 
-	# —— 第四批B 街区结构：边界墙 / 街区围墙 / 废弃车辆 ——
+	# —— 大地图重绘（2026-10-16）：边界墙 / 废弃车辆 / 导航可达性 ——
 	var boundary: StaticBody2D = main.get_node("Walls")
 	_check(boundary != null and boundary.collision_layer == 7 and boundary.get_child_count() >= 4,
 			"地图四周有边界墙（layer 7，玩家走不出去也看不到图外）")
-	var street_blocks: StaticBody2D = main.get_node("StreetBlocks")
 	var cars: StaticBody2D = main.get_node("AbandonedCars")
-	_check(street_blocks.collision_layer == 1, "街区围墙只挡移动不挡视线（layer 1，拐角后丧尸仍可见）")
-	_check(cars.collision_layer == 7 and cars.get_children().size() >= 10,
-			"废弃车辆挡视线可躲藏（layer 7，5 辆车身+车顶）")
+	_check(cars.collision_layer == 7 and cars.get_children().size() >= 12,
+			"废弃车辆挡视线可躲藏（layer 7，6 辆车身+车顶）")
 	var block_nav: RID = main.get_world_2d().navigation_map
 	var entries := {
-		"超市": Vector2(1900, 1240),
-		"警局": Vector2(1400, 1100),
-		"医院": Vector2(1780, 520),
-		"五金店": Vector2(2160, 1560),
-		"军营": Vector2(1280, 580),
+		"超市": Vector2(3000, 2430),
+		"警局": Vector2(3890, 2255),
+		"医院": Vector2(3010, 910),
+		"五金店": Vector2(1770, 1110),
+		"军营": Vector2(700, 1000),
 	}
 	var reach_ok := true
 	for bname in entries:
 		var path: PackedVector2Array = NavigationServer2D.map_get_path(
-				block_nav, Vector2(250, 1380), entries[bname], true)
+				block_nav, Vector2(450, 2100), entries[bname], true)
 		if path.is_empty():
 			reach_ok = false
 			print("导航不可达: ", bname)
-	_check(reach_ok, "五栋建筑导航全部可达（围墙没有烘出孤岛）")
+	_check(reach_ok, "五栋建筑导航全部可达（大地图没有烘出孤岛）")
 	var detour_path: PackedVector2Array = NavigationServer2D.map_get_path(
-			block_nav, Vector2(1640, 700), Vector2(1640, 1120), true)
-	_check(not detour_path.is_empty() and (detour_path[detour_path.size() - 1] as Vector2).distance_to(Vector2(1640, 1120)) < 50.0,
-			"超市↔警局缝隙封墙后仍可绕行（封缝不封路）")
+			block_nav, Vector2(2500, 2100), Vector2(3500, 2100), true)
+	var detour_len := 0.0
+	for i in range(1, detour_path.size()):
+		detour_len += detour_path[i - 1].distance_to(detour_path[i])
+	_check(not detour_path.is_empty() and detour_len > 1100.0,
+			"直线穿越超市被楼体挡住、导航绕行楼宇（楼体是实体障碍）")
 	# 最后一个按位置统计的守卫断言已过：恢复自主游荡，供后续行为测试使用
 	for fz in wander_frozen:
 		if is_instance_valid(fz):
@@ -1042,6 +1048,10 @@ func _run() -> void:
 	_check(radio != null and pilot != null, "收音机与飞行员 NPC 都在场景里")
 	_check(main.quest_stage == "none", "撤离任务初始未开始")
 	radio.interact(player)
+	# —— 情报只标记不揭雾（2026-10-15 第三批）：读电台后军营迷雾仍是黑的 ——
+	# （趁玩家还在安全屋、远离军营时验证；放在任务链后会被后续测试的传送路径干扰）
+	_check(not main.get_node("FogOfWar").is_explored(Vector2(720, 400)),
+			"情报解锁不揭迷雾（军营区域仍未知，不是免费远程侦察）")
 	_check(main.quest_stage == "radio_heard", "收听广播后撤离任务开启")
 	pilot.interact(player)
 	_check(main.quest_stage == "pilot_met", "与飞行员交谈接到物资清单")
@@ -1169,31 +1179,29 @@ func _run() -> void:
 	var fog: FogOfWar = main.get_node("FogOfWar")
 	_check(fog != null and fog.col_count() > 0, "迷雾系统挂载且网格已生成")
 	_check(fog.is_explored(player.global_position), "玩家所在区域已被揭开")
-	_check(not fog.is_explored(Vector2(2300, 200)), "地图东北角仍是未知区域")
+	_check(not fog.is_explored(Vector2(4600, 160)), "地图东北角仍是未知区域")
 	# —— 视野参数（2026-10-15 第三批）：消除"玩家视野小于丧尸"的死亡盲区 ——
 	_check(fog.omni_radius >= 180.0, "全向视野 ≥180px（覆盖丧尸贴身威胁圈，不再被近身锁定才看见）")
 	_check(fog.cone_radius > 260.0, "锥形视野 %dpx > 丧尸 detect_radius 260（看得比它远才有绕开空间）" % int(fog.cone_radius))
 	_check(fog.cone_half_angle_deg >= 75.0, "视野锥半角 ≥75°（150° 总视野，横向逃跑跟随更跟手）")
 	_check(int(main.map_markers["military"]) >= 1, "收音机广播解锁军营地图标记")
-	# —— 情报只标记不揭雾（2026-10-15 第三批）：读电台后军营仍是黑的，里面有什么进门才知道 ——
-	_check(not fog.is_explored(Vector2(1280, 330)), "情报解锁不揭迷雾（军营区域仍未知，不是免费远程侦察）")
-	fog.reveal_area(Vector2(1280, 330), 220.0)
-	_check(fog.is_explored(Vector2(1280, 330)), "reveal_area API 仍可脚本揭雾（能力保留）")
+	fog.reveal_area(Vector2(720, 400), 220.0)
+	_check(fog.is_explored(Vector2(720, 400)), "reveal_area API 仍可脚本揭雾（能力保留）")
 	_check(int(main.map_markers["camp"]) == 2, "安全屋开局即为已探索")
 	main.map_markers["police"] = 0
-	player.global_position = Vector2(1400, 700)
+	player.global_position = Vector2(3890, 2260)
 	main._update_map_markers()
 	_check(int(main.map_markers["police"]) == 1, "路过警局被自动发现")
 	main.map_markers["market"] = 0
 	main.map_markers["hospital"] = 0
-	player.global_position = Vector2(1900, 1172)
+	player.global_position = Vector2(3000, 2392)
 	main._update_map_markers()
 	_check(int(main.map_markers["market"]) == 1, "靠近后超市标记为已发现")
 	hud_node.toggle_map(true)
 	_check(main.get_node("HUD/Root/MapPanel").visible, "M 键打开地图面板")
 	hud_node.toggle_map(false)
 	_check(not main.get_node("HUD/Root/MapPanel").visible, "再按 M 关闭地图面板")
-	player.global_position = Vector2(1900, 1000)
+	player.global_position = Vector2(3000, 2100)
 	main._update_map_markers()
 	_check(int(main.map_markers["market"]) == 2, "走进建筑标记为已探索")
 	var note := load("res://data/items/note_hospital.tres") as ItemData
@@ -1210,11 +1218,11 @@ func _run() -> void:
 	_check(nav_probe_z._nav_ready(), "主场景启动后导航网格已烘焙")
 	var nav_map: RID = nav_probe_z._nav.get_navigation_map()
 	var nav_path := NavigationServer2D.map_get_path(
-			nav_map, Vector2(1500, 1000), Vector2(1900, 1060), true)
+			nav_map, Vector2(2500, 2100), Vector2(3500, 2100), true)
 	var path_len := 0.0
 	for i in range(1, nav_path.size()):
 		path_len += nav_path[i - 1].distance_to(nav_path[i])
-	var straight := Vector2(1500, 1000).distance_to(Vector2(1900, 1060))
+	var straight := Vector2(2500, 2100).distance_to(Vector2(3500, 2100))
 	_check(nav_path.size() >= 2 and path_len > straight * 1.15,
 			"导航路径绕过超市墙体（经门口绕行而非直线穿墙）")
 	# 2) 隔墙失明：丧尸在超市墙外 184px（视野 260 内），但视线被墙体挡住
@@ -1227,8 +1235,8 @@ func _run() -> void:
 		node.queue_free()
 	var wall_blind: Zombie = zscene_per.instantiate()
 	main.add_child(wall_blind)
-	wall_blind.global_position = Vector2(1780, 1200)
-	player.global_position = Vector2(1900, 1060)
+	wall_blind.global_position = Vector2(3460, 2250)
+	player.global_position = Vector2(3250, 2250)
 	for i in 8:
 		await physics_frame
 	_check(not wall_blind._sees_player, "隔着超市墙体丧尸看不见玩家")
@@ -1241,7 +1249,7 @@ func _run() -> void:
 			and wall_blind._last_seen.distance_to(player.global_position) < 2.0,
 			"隔墙挥砍声引来丧尸调查（记住声源位置）")
 	# 3b) 声音半径外：挥砍声 240px 传不到远处丧尸
-	wall_blind.global_position = Vector2(1500, 1200)  # 距玩家约 424px
+	wall_blind.global_position = Vector2(3250, 2850)  # 距玩家约 600px，声音半径外
 	wall_blind._memory_left = 0.0
 	player._attack_toward(Vector2.RIGHT)
 	await physics_frame
@@ -1258,8 +1266,8 @@ func _run() -> void:
 	var gate_door := main.get_node("Door") as Door
 	var gate_watcher: Zombie = zscene_per.instantiate()
 	main.add_child(gate_watcher)
-	gate_watcher.global_position = Vector2(200, 1540)
-	player.global_position = Vector2(200, 1420)
+	gate_watcher.global_position = Vector2(500, 2230)
+	player.global_position = Vector2(500, 2110)
 	gate_door.set_closed(true)
 	for i in 8:
 		await physics_frame
@@ -1271,10 +1279,10 @@ func _run() -> void:
 	gate_door.set_closed(true)
 	gate_watcher.queue_free()
 	# 5) 开阔地：视线通畅时正常追击移动
-	player.global_position = Vector2(760, 700)
+	player.global_position = Vector2(1600, 1900)
 	var field_chaser: Zombie = zscene_per.instantiate()
 	main.add_child(field_chaser)
-	field_chaser.global_position = Vector2(600, 700)
+	field_chaser.global_position = Vector2(1400, 1900)
 	for i in 4:
 		await physics_frame
 	_check(field_chaser._sees_player, "开阔地丧尸能看见玩家")
@@ -1287,8 +1295,8 @@ func _run() -> void:
 	# 6) Boss 冲撞视线门槛：隔墙不冲撞，获得视线后才起跑（不隔墙撞墙）
 	var boss_probe: Brute = (load("res://scenes/enemies/Brute.tscn") as PackedScene).instantiate()
 	main.add_child(boss_probe)
-	boss_probe.global_position = Vector2(1780, 1200)  # 超市墙外
-	player.global_position = Vector2(1900, 1060)      # 墙内（距探针约 184px，在冲撞距离区间内）
+	boss_probe.global_position = Vector2(3450, 2250)  # 超市东墙外
+	player.global_position = Vector2(3250, 2250)      # 墙内（距探针约 200px，在冲撞距离区间内）
 	for i in 8:
 		await physics_frame
 	boss_probe._charge_cd = 0.0
@@ -1306,8 +1314,8 @@ func _run() -> void:
 	# 安全屋关门会触发 target_sheltered 屏蔽调查分支，游荡断言过但调查断言必挂
 	var wb_a: Zombie = zscene_per.instantiate()
 	main.add_child(wb_a)
-	wb_a.global_position = Vector2(560, 700)
-	player.global_position = Vector2(1900, 300)
+	wb_a.global_position = Vector2(1400, 1200)
+	player.global_position = Vector2(4500, 2900)
 	var wa_start := wb_a.global_position
 	var wandered := false
 	for i in 1500:
@@ -1321,7 +1329,7 @@ func _run() -> void:
 	# 2) 游荡节奏不同步：同点放出的两只丧尸停顿/目标互不相同
 	var wb_b: Zombie = zscene_per.instantiate()
 	main.add_child(wb_b)
-	wb_b.global_position = Vector2(580, 720)
+	wb_b.global_position = Vector2(1420, 1220)
 	var desynced := false
 	for i in 240:
 		await physics_frame
@@ -1334,15 +1342,15 @@ func _run() -> void:
 	# 两只丧尸碰撞体叠在一起会物理互挤，卡住移动造成随机失败
 	# 3) 声音打断游荡：记住声源并前往调查（距离明显缩短）
 	# 确定性部分：hear_noise 后立即进入调查状态（记忆 > 0 且未到达声源）
-	wb_a.global_position = Vector2(560, 700)  # 瞬移到固定点，排除游荡漂移干扰
-	wb_a.hear_noise(Vector2(950, 700))
+	wb_a.global_position = Vector2(1400, 1200)  # 瞬移到固定点，排除游荡漂移干扰
+	wb_a.hear_noise(Vector2(1100, 1200))
 	_check(wb_a._ai_state() == "INVESTIGATE", "声音打断游荡（立即进入调查状态）")
 	# 位移部分：事件驱动等待接近声源（headless 帧率随机器波动，上限放宽）
-	var d0 := wb_a.global_position.distance_to(Vector2(950, 700))
+	var d0 := wb_a.global_position.distance_to(Vector2(1100, 1200))
 	var approached := false
 	for i in 3000:
 		await physics_frame
-		if wb_a.global_position.distance_to(Vector2(950, 700)) < d0 - 50.0:
+		if wb_a.global_position.distance_to(Vector2(1100, 1200)) < d0 - 50.0:
 			approached = true
 			break
 	_check(approached, "调查状态下丧尸实际向声源移动")
@@ -1368,8 +1376,8 @@ func _run() -> void:
 	# 6) Boss 不参与游荡：无目标时保持驻守
 	var boss_guard: Brute = (load("res://scenes/enemies/Brute.tscn") as PackedScene).instantiate()
 	main.add_child(boss_guard)
-	boss_guard.global_position = Vector2(700, 560)
-	player.global_position = Vector2(1900, 1060)  # 远离且隔超市墙
+	boss_guard.global_position = Vector2(2000, 350)
+	player.global_position = Vector2(3000, 2100)  # 远离（超市室内）
 	var bg_start := boss_guard.global_position
 	for i in 150:
 		await physics_frame
@@ -1383,98 +1391,98 @@ func _run() -> void:
 	fog.set_physics_process(false)
 	fog.aim_override = Vector2.RIGHT
 	# 1) 开阔地：锥内远处格可见，锥外同距格不可见（方向性）
-	player.global_position = Vector2(800, 700)
+	player.global_position = Vector2(1700, 1600)
 	await physics_frame
 	await physics_frame
 	fog.reveal_now()
-	_check(fog.cell_state(16, 11) == FogOfWar.STATE_VISIBLE,
-			"视野锥内远距格子可见（aim=右，(1056,736) 距 258px）")
-	_check(fog.cell_state(8, 11) != FogOfWar.STATE_VISIBLE,
-			"视野锥外同距格子不可见（玩家左侧 243px）")
+	_check(fog.cell_state(30, 25) == FogOfWar.STATE_VISIBLE,
+			"视野锥内远距格子可见（aim=右，(1952,1632) 距 254px）")
+	_check(fog.cell_state(22, 25) != FogOfWar.STATE_VISIBLE,
+			"视野锥外同距格子不可见（玩家左侧 262px）")
 	# 2) 方向切换：aim 转向左后，原锥内格熄灭、新方向格点亮
 	fog.aim_override = Vector2.LEFT
 	fog.reveal_now()
-	_check(fog.cell_state(8, 11) == FogOfWar.STATE_VISIBLE,
+	_check(fog.cell_state(22, 25) == FogOfWar.STATE_VISIBLE,
 			"转向后视野锥随鼠标方向更新（左侧格点亮）")
-	_check(fog.cell_state(16, 11) != FogOfWar.STATE_VISIBLE,
+	_check(fog.cell_state(30, 25) != FogOfWar.STATE_VISIBLE,
 			"转向后原右侧远格不再当前可见")
 	# 3) 全向圈隔墙遮挡：玩家在超市室内贴东墙上段墙（y 820~950），
 	#    墙外贴脸格子不因距离近而可见（64px 网格下墙带内无格中心，
 	#    用"室内贴墙→室外格"方向验证遮挡）
-	player.global_position = Vector2(2120, 930)
+	player.global_position = Vector2(3350, 1870)
 	fog.aim_override = Vector2.RIGHT
 	await physics_frame
 	await physics_frame
 	fog.reveal_now()
-	_check(fog.cell_state(33, 14) != FogOfWar.STATE_VISIBLE,
+	_check(fog.cell_state(54, 29) != FogOfWar.STATE_VISIBLE,
 			"全向圈内隔墙格子不可见（墙体截断近距视线）")
-	# 4) 窗户透视：玩家在室内贴东墙窗洞（y 950~1050 @ x=2132），
-	#    透过窗看见室外；窗旁下段墙（y 1050~1180）仍遮挡
-	player.global_position = Vector2(2120, 1010)
+	# 4) 窗户透视：玩家在室内贴东墙窗洞（y 1950~2100 @ x=3392），
+	#    透过窗看见室外；窗旁下段墙（y 2100~2400）仍遮挡
+	player.global_position = Vector2(3330, 2025)
 	await physics_frame
 	await physics_frame
 	fog.reveal_now()
-	_check(fog.cell_state(33, 15) == FogOfWar.STATE_VISIBLE,
+	_check(fog.cell_state(54, 31) == FogOfWar.STATE_VISIBLE,
 			"透过窗户可见室外近格（视线穿窗、窗后无墙）")
-	_check(fog.cell_state(33, 17) != FogOfWar.STATE_VISIBLE,
+	_check(fog.cell_state(54, 35) != FogOfWar.STATE_VISIBLE,
 			"窗户旁的墙体仍遮挡视线（不会整面墙透视）")
 	var zwin: Zombie = zscene_per.instantiate()
 	main.add_child(zwin)
-	zwin.global_position = Vector2(2090, 1000)
+	zwin.global_position = Vector2(3450, 2020)
 	await physics_frame
 	await physics_frame
 	_check(zwin._has_line_of_sight(), "丧尸隔窗能看见窗外玩家（窗户允许视觉检测）")
-	zwin.global_position = Vector2(2090, 880)
+	zwin.global_position = Vector2(3450, 2200)
 	await physics_frame
 	await physics_frame
 	_check(not zwin._has_line_of_sight(), "丧尸隔窗旁墙体看不见玩家（墙仍遮挡）")
 	zwin.queue_free()
 	# 5) 窗户挡移动：朝窗冲刺被实体碰撞拦下，不能穿窗
-	player.global_position = Vector2(2200, 1000)
+	player.global_position = Vector2(3550, 2025)
 	player.velocity = Vector2(-400, 0)
 	for i in 40:
 		player.move_and_slide()
 		await physics_frame
-	_check(player.global_position.x > 2152.0, "窗户阻挡角色移动（不能穿窗）")
+	_check(player.global_position.x > 3412.0, "窗户阻挡角色移动（不能穿窗）")
 	player.velocity = Vector2.ZERO
 	# 6) 家具不挡玩家视野：玩家视线只查墙/门层（值 4），贴身家具不再把格子挡黑
 	#    （回归：此前沙发所在格中心落在沙发碰撞体内 → 格子永久黑，"沙发只亮一半"）
-	player.global_position = Vector2(150, 1380)
+	player.global_position = Vector2(677, 2130)
 	fog.aim_override = Vector2.RIGHT
 	await physics_frame
 	await physics_frame
 	fog.reveal_now()
-	_check(fog.cell_state(1, 21) == FogOfWar.STATE_VISIBLE,
+	_check(fog.cell_state(9, 33) == FogOfWar.STATE_VISIBLE,
 			"贴身家具不挡玩家视野（沙发所在格可见）")
-	# 7) 家具夹缝不再"完全无视野"：沙发/桌子/西墙窄缝里，身边多数格子仍点亮
-	player.global_position = Vector2(118, 1330)
+	# 7) 家具夹缝不再"完全无视野"：沙发/家具/墙窄缝里，身边多数格子仍点亮
+	player.global_position = Vector2(330, 2160)
 	await physics_frame
 	await physics_frame
 	fog.reveal_now()
 	var lit := 0
-	for gy in range(19, 24):
-		for gx in range(0, 5):
+	for gy in range(31, 36):
+		for gx in range(3, 8):
 			if fog.cell_state(gx, gy) == FogOfWar.STATE_VISIBLE:
 				lit += 1
 	_check(lit >= 5, "家具夹缝处视野正常（5x5 内点亮 %d 格，修复前仅 1）" % lit)
 	# 8) 遮挡物自身所在的格应点亮（2026-10-15 第五批）：120×60 废弃车覆盖整格，
 	#    格心在车体内、射线在车近侧表面被截断 —— 旧模型把车身涂成整块黑；
 	#    新模型点亮物体自身覆盖的格（能看清车全貌），车后面仍不可见。
-	player.global_position = Vector2(300, 790)  # Car1 (300,700) 正下方 60px
+	player.global_position = Vector2(1200, 1700)  # Car1 (1200,1632) 正下方
 	fog.aim_override = Vector2.UP
 	await physics_frame
 	await physics_frame
 	fog.reveal_now()
-	_check(fog.cell_state(4, 10) == FogOfWar.STATE_VISIBLE,
-			"遮挡物自身所在的格点亮（车身格 (288,672) 在车体内，不再是黑块）")
-	_check(fog.cell_state(5, 10) == FogOfWar.STATE_VISIBLE,
+	_check(fog.cell_state(18, 25) == FogOfWar.STATE_VISIBLE,
+			"遮挡物自身所在的格点亮（车身格 (1184,1632) 在车体内，不再是黑块）")
+	_check(fog.cell_state(19, 25) == FogOfWar.STATE_VISIBLE,
 			"车身覆盖的相邻格同样点亮（车头车尾连续可见）")
-	_check(fog.cell_state(4, 9) != FogOfWar.STATE_VISIBLE,
+	_check(fog.cell_state(18, 24) != FogOfWar.STATE_VISIBLE,
 			"遮挡物正后方的格仍不可见（车后照旧被挡，没有看穿）")
 	# 9) 迷雾视觉柔化（2026-10-16 全面替换为默认）：只改绘制层，数据/存档零变化
 	_check(fog.visual_mode == 1, "迷雾绘制默认模式 1（边界柔化，纯色基线保留为 F6 调试对照）")
 	fog.visual_mode = 0
-	player.global_position = Vector2(800, 700)
+	player.global_position = Vector2(1700, 1600)
 	fog.aim_override = Vector2.RIGHT
 	await physics_frame
 	await physics_frame

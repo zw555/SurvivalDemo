@@ -2,7 +2,7 @@ extends Node2D
 ## 游戏主场景：把玩家、营地与 HUD 连起来，并处理死亡重生。
 ## 同时承载全局打击感效果：命中顿帧（hit-stop）。
 
-@export var map_size := Vector2i(2400, 1600)
+@export var map_size := Vector2i(4800, 3200)
 @export var zombie_density := 1.0
 @export var loot_density := 1.0
 @export var hit_stop_duration := 0.07
@@ -33,9 +33,9 @@ const SUPPLY_REQUIREMENTS := {
 	ItemData.KIND_AMMO: 1,
 }
 ## NPC 交付物资后瞬移到停机坪等候的位置（直升机旁）。
-const PILOT_PAD_POSITION := Vector2(1420, 380)
+const PILOT_PAD_POSITION := Vector2(960, 620)
 ## 重型变异体（Boss）在交付物资后出现的位置（停机坪东南角）。
-const BOSS_SPAWN_POSITION := Vector2(1490, 450)
+const BOSS_SPAWN_POSITION := Vector2(1060, 660)
 const BRUTE_VARIANT_PATH := "res://data/variants/brute.tres"
 
 ## —— 地图标记（配合迷雾）——
@@ -48,17 +48,17 @@ const MARKER_DISCOVER_RADIUS := 420.0
 ## 可标注的建筑清单（id 与 ThoughtSystem 的建筑 id 保持一致）。
 const MAP_BUILDINGS: Array = [
 	{"id": "camp", "name": "安全屋", "color": Color(0.55, 0.85, 0.55),
-			"rect": Rect2(60, 1080, 700, 400), "start_found": true},
+			"rect": Rect2(300, 1900, 400, 280), "start_found": true},
 	{"id": "market", "name": "惠民超市", "color": Color(0.95, 0.8, 0.4),
-			"rect": Rect2(1660, 820, 480, 360), "start_found": false},
+			"rect": Rect2(2600, 1800, 800, 600), "start_found": false},
 	{"id": "police", "name": "市公安局", "color": Color(0.5, 0.7, 0.95),
-			"rect": Rect2(1180, 760, 440, 280), "start_found": false},
+			"rect": Rect2(3640, 1820, 512, 400), "start_found": false},
 	{"id": "hospital", "name": "仁爱医院", "color": Color(0.95, 0.95, 0.95),
-			"rect": Rect2(1560, 140, 440, 320), "start_found": false},
+			"rect": Rect2(2560, 200, 896, 672), "start_found": false},
 	{"id": "hardware", "name": "废铁五金店", "color": Color(0.9, 0.6, 0.3),
-			"rect": Rect2(1940, 1200, 440, 280), "start_found": false},
+			"rect": Rect2(1560, 760, 448, 320), "start_found": false},
 	{"id": "military", "name": "城北军营", "color": Color(0.85, 0.35, 0.35),
-			"rect": Rect2(1040, 150, 480, 360), "start_found": false},
+			"rect": Rect2(240, 240, 960, 720), "start_found": false},
 ]
 ## 标记发现检查间隔（秒）。
 const MARKER_CHECK_INTERVAL := 0.4
@@ -149,11 +149,11 @@ func _ready() -> void:
 	_player.notify.connect(_hud.show_message)
 	# 内心独白引导系统：传入特殊建筑位置（画面中心，与墙体节点无关）
 	var thought_buildings: Array = [
-		{"id": "market", "name": "惠民超市", "pos": Vector2(1900, 1000)},
-		{"id": "police", "name": "市公安局", "pos": Vector2(1400, 900)},
-		{"id": "hospital", "name": "仁爱医院", "pos": Vector2(1780, 300)},
-		{"id": "hardware", "name": "五金店", "pos": Vector2(2160, 1340)},
-		{"id": "military", "name": "城北军营", "pos": Vector2(1280, 330)},
+		{"id": "market", "name": "惠民超市", "pos": Vector2(3000, 2100)},
+		{"id": "police", "name": "市公安局", "pos": Vector2(3896, 2020)},
+		{"id": "hospital", "name": "仁爱医院", "pos": Vector2(3008, 536)},
+		{"id": "hardware", "name": "五金店", "pos": Vector2(1784, 920)},
+		{"id": "military", "name": "城北军营", "pos": Vector2(720, 600)},
 	]
 	_thoughts.setup(_player, _camp, _day_night, _hud, thought_buildings)
 	# 地图迷雾与地点标记：安全屋开局已知，其余靠探索/情报解锁
