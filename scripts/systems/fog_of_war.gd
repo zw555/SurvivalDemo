@@ -32,7 +32,7 @@ const TICK_INTERVAL := 0.15
 ## 让视野边缘从 64px 方块阶梯变成贴合真实圆弧/扇形的过渡——不是继承
 ## 格状态的假细分。「因遮挡不可见」的格（格心在视野几何内却被墙挡）
 ## 保持整格硬边：墙后不该被柔化看穿。判定逻辑 / 存档格式 / _cells 不变。
-@export var visual_mode := 0
+@export var visual_mode := 1  ## 0=纯色基线（调试对照） 1=边界柔化（2026-10-16 起默认，F6 切换）
 
 @export var cell_size := 64.0
 @export var map_size := Vector2(2400, 1600)

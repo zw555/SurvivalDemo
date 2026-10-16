@@ -1471,8 +1471,9 @@ func _run() -> void:
 			"车身覆盖的相邻格同样点亮（车头车尾连续可见）")
 	_check(fog.cell_state(4, 9) != FogOfWar.STATE_VISIBLE,
 			"遮挡物正后方的格仍不可见（车后照旧被挡，没有看穿）")
-	# 9) 迷雾视觉柔化原型（2026-10-15 原型批）：只改绘制层，数据/存档零变化
-	_check(fog.visual_mode == 0, "迷雾绘制默认模式 0（纯色基线，行为不变）")
+	# 9) 迷雾视觉柔化（2026-10-16 全面替换为默认）：只改绘制层，数据/存档零变化
+	_check(fog.visual_mode == 1, "迷雾绘制默认模式 1（边界柔化，纯色基线保留为 F6 调试对照）")
+	fog.visual_mode = 0
 	player.global_position = Vector2(800, 700)
 	fog.aim_override = Vector2.RIGHT
 	await physics_frame
